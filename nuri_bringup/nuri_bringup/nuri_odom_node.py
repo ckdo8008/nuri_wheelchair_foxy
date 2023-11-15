@@ -13,24 +13,26 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import TransformStamped, Quaternion, Pose
 from tf2_ros import TransformBroadcaster
 
+
 def euler_from_quaternion(quaternion):
-  x = quaternion[0]
-  y = quaternion[1]
-  z = quaternion[2]
-  w = quaternion[3]
+    x = quaternion[0]
+    y = quaternion[1]
+    z = quaternion[2]
+    w = quaternion[3]
 
-  sinr_cosp = 2 * (w * x + y * z)
-  cosr_cosp = 1 - 2 * (x * x + y * y)
-  roll = np.arctan2(sinr_cosp, cosr_cosp)
+    sinr_cosp = 2 * (w * x + y * z)
+    cosr_cosp = 1 - 2 * (x * x + y * y)
+    roll = np.arctan2(sinr_cosp, cosr_cosp)
 
-  sinp = 2 * (w * y - z * x)
-  pitch = np.arcsin(sinp)
+    sinp = 2 * (w * y - z * x)
+    pitch = np.arcsin(sinp)
 
-  siny_cosp = 2 * (w * z + x * y)
-  cosy_cosp = 1 - 2 * (y * y + z * z)
-  yaw = np.arctan2(siny_cosp, cosy_cosp)
+    siny_cosp = 2 * (w * z + x * y)
+    cosy_cosp = 1 - 2 * (y * y + z * z)
+    yaw = np.arctan2(siny_cosp, cosy_cosp)
 
-  return roll, pitch, yaw
+    return roll, pitch, yaw
+
 
 def quaternion_from_euler(roll, pitch, yaw):
     """
@@ -53,6 +55,7 @@ def quaternion_from_euler(roll, pitch, yaw):
 
     return q
 
+
 class OdomPose(object):
     x = 0.0
     y = 0.0
@@ -60,57 +63,100 @@ class OdomPose(object):
     timestamp = 0
     pre_timestamp = 0
 
+
 class OdomVel(object):
     x = 0.0
     y = 0.0
     w = 0.0
 
-class ComplementaryFilter():
-  def __init__(self):
-    self.theta = 0.
-    self.pre_theta = 0.
-    self.wheel_ang = 0.
-    self.filter_coef = 2.5
-    self.gyro_bias = 0.
-    self.count_for_gyro_bias = 110
 
-  def gyro_calibration(self, gyro):
-    self.count_for_gyro_bias -= 1
+class ComplementaryFilter:
+    def __init__(self):
+        self.theta = 0.0
+        self.pre_theta = 0.0
+        self.wheel_ang = 0.0
+        self.filter_coef = 2.5
+        self.gyro_bias = 0.0
+        self.count_for_gyro_bias = 110
 
-    if self.count_for_gyro_bias > 100:
-      return "Prepare for gyro_calibration"
+    def gyro_calibration(self, gyro):
+        self.count_for_gyro_bias -= 1
 
-    self.gyro_bias += gyro
-    if self.count_for_gyro_bias == 1:
-      self.gyro_bias /= 100
-      print('Complete : Gyro calibration')
-      return "gyro_calibration OK"
+        if self.count_for_gyro_bias > 100:
+            return "Prepare for gyro_calibration"
 
-    return "During gyro_calibration"
+        self.gyro_bias += gyro
+        if self.count_for_gyro_bias == 1:
+            self.gyro_bias /= 100
+            print("Complete : Gyro calibration")
+            return "gyro_calibration OK"
 
-  def calc_filter(self, gyro, d_time):
+        return "During gyro_calibration"
 
-    if self.count_for_gyro_bias != 1:
-      tmp = self.gyro_calibration(gyro)
-      return 0
+    def calc_filter(self, gyro, d_time):
+        if self.count_for_gyro_bias != 1:
+            tmp = self.gyro_calibration(gyro)
+            return 0
 
-    gyro -= self.gyro_bias
-    self.pre_theta = self.theta
-    temp = -1/self.filter_coef * (-self.wheel_ang + self.pre_theta) + gyro
-    self.theta = self.pre_theta + temp*d_time
-    return self.theta    
+        gyro -= self.gyro_bias
+        self.pre_theta = self.theta
+        temp = -1 / self.filter_coef * (-self.wheel_ang + self.pre_theta) + gyro
+        self.theta = self.pre_theta + temp * d_time
+        return self.theta
+
 
 def calculate_angle_difference(prev_angle, current_angle, divfeedback):
-  diff = current_angle - prev_angle
-  if diff > 32766:  # 반대 방향으로 큰 변화가 감지된 경우 (0에서 65533로의 점프)
-    diff -= 65533
-  elif diff < -32766:  # 반대 방향으로 큰 변화가 감지된 경우 (65533에서 0으로의 점프)
-    diff += 65533
-  return diff / divfeedback
+    diff = current_angle - prev_angle
+    if diff > 32766:  # 반대 방향으로 큰 변화가 감지된 경우 (0에서 65533로의 점프)
+        diff -= 65533
+    elif diff < -32766:  # 반대 방향으로 큰 변화가 감지된 경우 (65533에서 0으로의 점프)
+        diff += 65533
+    return diff / divfeedback
+
+
+# class KalmanFilter:
+#     def __init__(self):
+#         # 1차원 상태를 가정
+#         self.state_estimate = np.array([[0]])  # 초기 상태 추정치
+#         self.error_covariance = np.array([[1]])  # 초기 오차 공분산
+#         self.process_model = np.array([[1]])  # 프로세스 모델
+#         self.measurement_model = np.array([[1]])  # 측정 모델
+#         self.process_noise_covariance = np.array([[0.1]])  # 프로세스 노이즈 공분산
+#         self.measurement_noise_covariance = np.array([[0.1]])  # 측정 노이즈 공분산
+
+#     def predict(self):
+#         # 상태 예측
+#         self.state_estimate = self.process_model.dot(self.state_estimate)
+#         # 오차 공분산 예측
+#         self.error_covariance = (
+#             self.process_model.dot(self.error_covariance).dot(self.process_model.T)
+#             + self.process_noise_covariance
+#         )
+
+#     def update(self, measurement):
+#         # 칼만 이득 계산
+#         kalman_gain = self.error_covariance.dot(self.measurement_model.T).dot(
+#             np.linalg.inv(
+#                 self.measurement_model.dot(self.error_covariance).dot(
+#                     self.measurement_model.T
+#                 )
+#                 + self.measurement_noise_covariance
+#             )
+#         )
+#         # 상태 업데이트
+#         self.state_estimate = self.state_estimate + kalman_gain.dot(
+#             measurement - self.measurement_model.dot(self.state_estimate)
+#         )
+#         # 오차 공분산 업데이트
+#         self.error_covariance = (
+#             np.eye(1) - kalman_gain.dot(self.measurement_model)
+#         ).dot(self.error_covariance)
+
 
 class NurirobotOdomNode(Node):
     def __init__(self):
         super().__init__("nuri_odom_node")
+        self.get_logger().info("nuri_odom_node : start")
         self.wheel_separation = 0.45
         self.wheel_radius = 0.29
         self.divfeedback = 10.0
@@ -141,6 +187,10 @@ class NurirobotOdomNode(Node):
         self._imu = [0.0, 0.0, 0.0]
         self._prev_pos = [-1.0, -1.0]
 
+        # self._pos_Kalman = [KalmanFilter(), KalmanFilter()]
+        # self._pos_Kalman[0].predict()
+        # self._pos_Kalman[1].predict()
+
         self.current_x = 0.0
         self.current_y = 0.0
         self.current_theta = 0.0
@@ -159,19 +209,21 @@ class NurirobotOdomNode(Node):
             qos_profile_sensor_data,
         )
 
-        self.subImu = self.create_subscription(Imu, 'imu_link', self.cbImu, qos_profile_sensor_data)
+        self.subImu = self.create_subscription(
+            Imu, "imu_link", self.cbImu, qos_profile_sensor_data
+        )
 
         self.pub_Odom = self.create_publisher(Odometry, "odom", qos_profile_sensor_data)
         self.pub_OdomTF = TransformBroadcaster(self)
-        self.pub_pose = self.create_publisher(Pose, 'pose', qos_profile_sensor_data)
+        self.pub_pose = self.create_publisher(Pose, "pose", qos_profile_sensor_data)
         # self.pub_imu = self.create_publisher(Imu, 'imu_link', qos_profile_sensor_data)
-        self.timerProc = self.create_timer(0.05, self.update_robot)
+        self.timerProc = self.create_timer(0.01, self.update_robot)
 
     def cbSrv_resetODOM(self, request, response):
         self.odom_pose.x = request.x
         self.odom_pose.y = request.y
         self.odom_pose.theta = request.theta
-        print(
+        self.get_logger().info(
             "SERVICE: RESET ODOM X:%s, Y:%s, Theta:%s"
             % (request.x, request.y, request.theta)
         )
@@ -181,41 +233,53 @@ class NurirobotOdomNode(Node):
         self.odom_pose.x = request.x
         self.odom_pose.y = request.y
         self.odom_pose.theta = request.theta
-        print(
+        self.get_logger().info(
             "SERVICE: RESET ODOM X:%s, Y:%s, Theta:%s"
             % (request.x, request.y, request.theta)
         )
         return response
-    
+
     def cbImu(self, msg):
         self.imu_z = msg.angular_velocity.z
         orientation_q = msg.orientation
         roll, pitch, yaw = euler_from_quaternion(
-        [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
+            [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
         )
-        self.updatePoseStates(roll, pitch, yaw)  
+
+        # self.get_logger().info("%f %f %f"%(roll, pitch, yaw))
+        self.updatePoseStates(roll, pitch, yaw)
 
     def updatePoseStates(self, roll, pitch, yaw):
         pose = Pose()
         pose.orientation.x = roll
         pose.orientation.y = pitch
         pose.orientation.z = yaw
-        self.pub_pose.publish(pose)    
+        self.pub_pose.publish(pose)
 
     def cbPos(self, msg):
         if self._prev_pos[msg.id] == -1.0:
             self._prev_pos[msg.id] = msg.pos
 
+        # self._pos_Kalman[msg.id].update(msg.pos)
+        # self._pos[msg.id] = self._pos_Kalman[msg.id].state_estimate
+
         self._pos[msg.id] = msg.pos
         # print(msg.pos)
         return
-    
+
     def update_robot(self):
         if self._prev_pos[0] == -1.0 or self._prev_pos[1] == -1.0:
             return
-        
-        delta_angle_l = calculate_angle_difference(self._prev_pos[0], self._pos[0], self.divfeedback)
-        delta_angle_r = calculate_angle_difference(self._prev_pos[1], self._pos[1], self.divfeedback) * -1
+
+        delta_angle_l = calculate_angle_difference(
+            self._prev_pos[0], self._pos[0], self.divfeedback
+        )
+        delta_angle_r = (
+            calculate_angle_difference(
+                self._prev_pos[1], self._pos[1], self.divfeedback
+            )
+            * -1
+        )
 
         self._prev_pos[0] = self._pos[0]
         self._prev_pos[1] = self._pos[1]
@@ -228,24 +292,30 @@ class NurirobotOdomNode(Node):
         # print([delta_left_angle, delta_right_angle] )
         delta_left_angle = math.radians(delta_left_angle)
         delta_right_angle = math.radians(delta_right_angle)
-        
+
         delta_left_distance = delta_left_angle * self.wheel_radius
         delta_right_distance = delta_right_angle * self.wheel_radius
         delta_distance = (delta_left_distance + delta_right_distance) / 2.0
-        delta_theta = (delta_right_distance - delta_left_distance) / self.wheel_separation
+        delta_theta = (
+            delta_right_distance - delta_left_distance
+        ) / self.wheel_separation
 
         self.odom_pose.timestamp = self.get_clock().now()
-        dt = (self.odom_pose.timestamp - self.odom_pose.pre_timestamp).nanoseconds * 1e-9
+        dt = (
+            self.odom_pose.timestamp - self.odom_pose.pre_timestamp
+        ).nanoseconds * 1e-9
         self.odom_pose.pre_timestamp = self.odom_pose.timestamp
 
-        # self.calc_yaw.wheel_ang += delta_theta
-        # self.odom_pose.theta = self.calc_yaw.calc_filter(self.imu_z*math.pi/180., dt)
-        self.odom_pose.theta += delta_theta
-        
+        self.calc_yaw.wheel_ang += delta_theta
+        self.odom_pose.theta = self.calc_yaw.calc_filter(
+            self.imu_z * math.pi / 180.0, dt
+        )
+        # self.odom_pose.theta += delta_theta
+
         # print("delta_distance %f, curr Theta: %f, theta: %f"% (delta_distance, delta_theta,self.odom_pose.theta))
         q = quaternion_from_euler(0, 0, self.odom_pose.theta)
 
-        self.odom_pose.theta += delta_theta
+        # self.odom_pose.theta += delta_theta
         self.odom_pose.x += delta_distance * math.cos(self.odom_pose.theta)
         self.odom_pose.y += delta_distance * math.sin(self.odom_pose.theta)
 
@@ -253,7 +323,7 @@ class NurirobotOdomNode(Node):
         odom = Odometry()
         odom.header.stamp = timestamp_now
         odom.header.frame_id = "odom"
-        odom.child_frame_id = "base_footprint"    
+        odom.child_frame_id = "base_footprint"
         odom.pose.pose.position.x = self.odom_pose.x
         odom.pose.pose.position.y = self.odom_pose.y
 
@@ -261,8 +331,12 @@ class NurirobotOdomNode(Node):
         odom.pose.pose.orientation.y = q[1]
         odom.pose.pose.orientation.z = q[2]
         odom.pose.pose.orientation.w = q[3]
-        odom.twist.twist.linear.x = delta_distance  # Assume a unit time interval for simplicity
-        odom.twist.twist.angular.z = delta_theta    # Assume a unit time interval for simplicity
+        odom.twist.twist.linear.x = (
+            delta_distance  # Assume a unit time interval for simplicity
+        )
+        odom.twist.twist.angular.z = (
+            delta_theta  # Assume a unit time interval for simplicity
+        )
         self.pub_Odom.publish(odom)
 
         odom_tf = TransformStamped()
@@ -273,15 +347,24 @@ class NurirobotOdomNode(Node):
         odom_tf.transform.translation.y = odom.pose.pose.position.y
         odom_tf.transform.translation.z = 0.0
         odom_tf.transform.rotation = odom.pose.pose.orientation
-        
-        self.pub_OdomTF.sendTransform(odom_tf)  
+
+        self.pub_OdomTF.sendTransform(odom_tf)
 
     def euler_to_quaternion(self, roll, pitch, yaw):
-        qx = math.sin(roll/2) * math.cos(pitch/2) * math.cos(yaw/2) - math.cos(roll/2) * math.sin(pitch/2) * math.sin(yaw/2)
-        qy = math.cos(roll/2) * math.sin(pitch/2) * math.cos(yaw/2) + math.sin(roll/2) * math.cos(pitch/2) * math.sin(yaw/2)
-        qz = math.cos(roll/2) * math.cos(pitch/2) * math.sin(yaw/2) - math.sin(roll/2) * math.sin(pitch/2) * math.cos(yaw/2)
-        qw = math.cos(roll/2) * math.cos(pitch/2) * math.cos(yaw/2) + math.sin(roll/2) * math.sin(pitch/2) * math.sin(yaw/2)
+        qx = math.sin(roll / 2) * math.cos(pitch / 2) * math.cos(yaw / 2) - math.cos(
+            roll / 2
+        ) * math.sin(pitch / 2) * math.sin(yaw / 2)
+        qy = math.cos(roll / 2) * math.sin(pitch / 2) * math.cos(yaw / 2) + math.sin(
+            roll / 2
+        ) * math.cos(pitch / 2) * math.sin(yaw / 2)
+        qz = math.cos(roll / 2) * math.cos(pitch / 2) * math.sin(yaw / 2) - math.sin(
+            roll / 2
+        ) * math.sin(pitch / 2) * math.cos(yaw / 2)
+        qw = math.cos(roll / 2) * math.cos(pitch / 2) * math.cos(yaw / 2) + math.sin(
+            roll / 2
+        ) * math.sin(pitch / 2) * math.sin(yaw / 2)
         return Quaternion(x=qx, y=qy, z=qz, w=qw)
+
 
 def main(args=None):
     rclpy.init(args=args)

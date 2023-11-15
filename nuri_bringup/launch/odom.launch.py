@@ -27,10 +27,10 @@ def generate_launch_description():
         )
     )
     return LaunchDescription([
-        LifecycleNode(
-            package='omo_r1mini_bringup',
-            executable='nuri_odom_node',
-            name='nuri_odom_node',
+        Node(
+            package='nuri_odom',
+            executable='odom_node',
+            name='diff_drive_controller',
             output='screen',
             emulate_tty=True,
             parameters=None,
