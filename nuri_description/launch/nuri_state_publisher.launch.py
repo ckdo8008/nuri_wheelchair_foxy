@@ -11,6 +11,7 @@ from launch.substitutions import LaunchConfiguration
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import ThisLaunchFileDir
 from launch_ros.actions import Node
+import launch.logging
 
 def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time', default='false')
@@ -20,6 +21,9 @@ def generate_launch_description():
         get_package_share_directory('nuri_description'),
         'urdf',
         urdf_file_name)
+    
+    # print(urdf)
+    launch.logging.get_logger().info(urdf)
 
     return LaunchDescription([
         DeclareLaunchArgument(

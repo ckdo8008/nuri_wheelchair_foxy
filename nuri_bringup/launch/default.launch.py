@@ -45,19 +45,12 @@ def generate_launch_description():
             'launch'
         )
     )
-    description_dir = LaunchConfiguration(
-        'description_dir',
-        default=os.path.join(
-            get_package_share_directory('nuri_description'),
-            'launch'
-        )
-    )
 
     return LaunchDescription([
-        DeclareLaunchArgument(
-            'lidar_parameter',
-            default_value=lidar_parameter
-        ),
+        # DeclareLaunchArgument(
+        #     'lidar_parameter',
+        #     default_value=lidar_parameter
+        # ),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([imu_dir, '/mpu6050driver_launch.py']),
             launch_arguments={'params_file': imu_parameter}.items()
@@ -77,7 +70,7 @@ def generate_launch_description():
                 {'sensor_index': 0}  
             ],
             namespace='',
-        ),        
+        ),
         Node(
             package='ros2_sr04m_sensor',
             executable='AJ_SR04M_Node',
@@ -88,7 +81,7 @@ def generate_launch_description():
                 {'sensor_index': 1}  
             ],
             namespace='',
-        ),        
+        ),
         Node(
             package='ros2_sr04m_sensor',
             executable='AJ_SR04M_Node',
@@ -99,7 +92,7 @@ def generate_launch_description():
                 {'sensor_index': 2}  
             ],
             namespace='',
-        ),        
+        ),
         Node(
             package='ros2_sr04m_sensor',
             executable='AJ_SR04M_Node',
@@ -110,7 +103,7 @@ def generate_launch_description():
                 {'sensor_index': 3}  
             ],
             namespace='',
-        ),        
+        ),
         Node(
             package='ros2_sr04m_sensor',
             executable='AJ_SR04M_Node',
@@ -121,7 +114,7 @@ def generate_launch_description():
                 {'sensor_index': 4}  
             ],
             namespace='',
-        ),        
+        ),
         Node(
             package='ros2_sr04m_sensor',
             executable='AJ_SR04M_Node',
@@ -132,16 +125,7 @@ def generate_launch_description():
                 {'sensor_index': 5}  
             ],
             namespace='',
-        ),        
-        # Node(
-        #     package='nuri_bringup',
-        #     executable='imupublish_node',
-        #     name='imupublish_node',
-        #     output='screen',
-        #     emulate_tty=True,
-        #     parameters=None,
-        #     namespace='',
-        # ),
+        ),
         Node(
             package='lslidar_driver',
             executable='lslidar_driver_node',
@@ -150,5 +134,5 @@ def generate_launch_description():
             emulate_tty=True,
             parameters=[lidar_parameter],
             namespace='/',
-        )          
+        )
     ])

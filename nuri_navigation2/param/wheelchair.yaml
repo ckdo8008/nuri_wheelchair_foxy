@@ -81,24 +81,13 @@ bt_navigator_rclcpp_node:
 
 controller_server:
   ros__parameters:
+    use_imu: False  
     use_sim_time: False
     controller_frequency: 10.0
     min_x_velocity_threshold: 0.001
     min_y_velocity_threshold: 0.5
     min_theta_velocity_threshold: 0.001
-    progress_checker_plugins: ["progress_checker"]
-    goal_checker_plugins: ["goal_checker"]    
     controller_plugins: ["FollowPath"]
-
-    progress_checker:
-      plugin: "nav2_controller::SimpleProgressChecker"
-      required_movement_radius: 0.5
-      movement_time_allowance: 10.0
-    goal_checker:
-      plugin: "nav2_controller::SimpleGoalChecker"
-      xy_goal_tolerance: 0.25
-      yaw_goal_tolerance: 0.25
-      stateful: True    
 
     # DWB parameters
     FollowPath:
@@ -119,13 +108,13 @@ controller_server:
       decel_lim_y: 0.0
       decel_lim_theta: -3.2
       vx_samples: 20
-      vy_samples: 5
-      vtheta_samples: 20
-      sim_time: 1.7
+      vy_samples: 0
+      vtheta_samples: 40
+      sim_time: 2.0
       linear_granularity: 0.05
       angular_granularity: 0.025
       transform_tolerance: 0.2
-      xy_goal_tolerance: 0.25
+      xy_goal_tolerance: 0.05
       trans_stopped_velocity: 0.25
       short_circuit_trajectory_evaluation: True
       stateful: True
@@ -154,10 +143,11 @@ local_costmap:
       robot_base_frame: base_link
       use_sim_time: False
       rolling_window: true
+      use_imu: False
       width: 3
       height: 3
       resolution: 0.05
-      robot_radius: 0.45
+      robot_radius: 0.5
       plugins: ["obstacle_layer", "inflation_layer"]
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
