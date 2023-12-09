@@ -72,6 +72,7 @@ class TeleopJoyNode(Node):
 
 def main(args=None):
     rclpy.init(args=args)
+    print (args)
     teleop_joy =  TeleopJoyNode()
     rclpy.spin(teleop_joy)
     teleop_joy.destroy_node()

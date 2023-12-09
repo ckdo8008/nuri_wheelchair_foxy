@@ -55,22 +55,20 @@ Odometry::Odometry(
     uint32_t queue_size = 10;
     joint_state_imu_sync_ = std::make_shared<SynchronizerJointStateImu>(queue_size);
 
-    msg_ftr_left_wheel_sub_ = 
+    msg_ftr_left_wheel_sub_ =
         std::make_shared<message_filters::Subscriber<nurirobot_msgs::msg::NurirobotPos>>(
             nh_,
-            "left_wheel_pos"
-        );
-        
-    msg_ftr_right_wheel_sub_ = 
+            "left_wheel_pos");
+
+    msg_ftr_right_wheel_sub_ =
         std::make_shared<message_filters::Subscriber<nurirobot_msgs::msg::NurirobotPos>>(
             nh_,
-            "right_wheel_pos"
-        );
+            "right_wheel_pos");
 
     msg_ftr_imu_sub_ =
         std::make_shared<message_filters::Subscriber<sensor_msgs::msg::Imu>>(
             nh_,
-            "imu_link");
+            "imu/data");
 
     // connect message filters to synchronizer
     joint_state_imu_sync_->connectInput(*msg_ftr_left_wheel_sub_, *msg_ftr_right_wheel_sub_, *msg_ftr_imu_sub_);
@@ -81,7 +79,7 @@ Odometry::Odometry(
 
     joint_state_imu_sync_->setInterMessageLowerBound(
         1,
-        rclcpp::Duration(30ms));        
+        rclcpp::Duration(30ms));
 
     joint_state_imu_sync_->setInterMessageLowerBound(
         2,
@@ -98,7 +96,7 @@ Odometry::Odometry(
 
 void Odometry::joint_state_and_imu_callback(
     const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &left_wheel_msg,
-    const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &right_wheel_msg,    
+    const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &right_wheel_msg,
     const std::shared_ptr<sensor_msgs::msg::Imu const> &imu_msg)
 {
     // RCLCPP_INFO(
@@ -175,8 +173,8 @@ void Odometry::publish(const rclcpp::Time &now)
     }
 }
 
-void Odometry::update_pos_state(const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &left_wheel_msg, 
-    const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &right_wheel_msg) 
+void Odometry::update_pos_state(const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &left_wheel_msg,
+                                const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &right_wheel_msg)
 {
     static std::array<uint16_t, 2> last_joint_positions = {0, 0};
 
@@ -189,17 +187,9 @@ void Odometry::update_pos_state(const std::shared_ptr<nurirobot_msgs::msg::Nurir
 
 void Odometry::update_imu(const std::shared_ptr<sensor_msgs::msg::Imu const> &imu)
 {
-    // imu_angle_ = atan2f(
-    //     imu->orientation.x * imu->orientation.y + imu->orientation.w * imu->orientation.z,
-    //     0.5f - imu->orientation.y * imu->orientation.y - imu->orientation.z * imu->orientation.z);
-
-    imu_z_ = imu->angular_velocity.z;
-
-    RCLCPP_DEBUG(
-        nh_->get_logger(),
-        "[imu_msg] nanosec : %d imu_z : %f ",
-        imu->header.stamp.nanosec,
-        imu_z_);            
+    imu_angle_ = atan2f(
+        imu->orientation.x * imu->orientation.y + imu->orientation.w * imu->orientation.z,
+        0.5f - imu->orientation.y * imu->orientation.y - imu->orientation.z * imu->orientation.z);
 }
 
 bool Odometry::calculate_odometry(const rclcpp::Duration &duration)
@@ -208,15 +198,73 @@ bool Odometry::calculate_odometry(const rclcpp::Duration &duration)
     double wheel_l = degreesToRadians(diff_joint_positions_[0]);
     double wheel_r = degreesToRadians(diff_joint_positions_[1]);
 
+    // double delta_s = 0.0;
+    // double delta_theta = 0.0;
+
+    // double theta = 0.0;
+    // static double last_theta = 0.0;
+    // double theta_pos = 0.0;
+
+    // // v = translational velocity [m/s]
+    // // w = rotational velocity [rad/s]
+    // double v = 0.0;
+    // double w = 0.0;
+
+    // double step_time = duration.seconds();
+
+    // if (step_time == 0.0)
+    // {
+    //     return false;
+    // }
+
+    // if (std::isnan(wheel_l))
+    // {
+    //     wheel_l = 0.0;
+    // }
+
+    // if (std::isnan(wheel_r))
+    // {
+    //     wheel_r = 0.0;
+    // }
+
+    // delta_s = wheels_radius_ * (wheel_r + wheel_l) / 2.0;
+
+    // // theta_pos = wheels_radius_ * (wheel_r - wheel_l) / wheels_separation_;
+    // // calc_yaw_.wheel_ang += theta_pos;
+    // // theta = calc_yaw_.calc_filter(
+    // //     imu_z_ * M_PI / 180.0f, step_time
+    // // );
+    // // delta_theta = theta - last_theta;
+
+    // // theta = imu_angle_;
+    // // delta_theta = theta - last_theta;
+
+    // theta = wheels_radius_ * (wheel_r - wheel_l) / wheels_separation_;
+    // delta_theta = theta;
+
+    // // compute odometric pose
+    // robot_pose_[0] += delta_s * cos(robot_pose_[2] + (delta_theta / 2.0));
+    // robot_pose_[1] += delta_s * sin(robot_pose_[2] + (delta_theta / 2.0));
+    // robot_pose_[2] += delta_theta;
+
+    // RCLCPP_DEBUG(nh_->get_logger(), "x : %f, y : %f", robot_pose_[0], robot_pose_[1]);
+
+    // // compute odometric instantaneouse velocity
+    // v = delta_s / step_time;
+    // w = delta_theta / step_time;
+
+    // robot_vel_[0] = v;
+    // robot_vel_[1] = 0.0;
+    // robot_vel_[2] = w;
+
+    // last_theta = theta;
+    // return true;
     double delta_s = 0.0;
     double delta_theta = 0.0;
 
     double theta = 0.0;
     static double last_theta = 0.0;
-    double theta_pos = 0.0;
 
-    // v = translational velocity [m/s]
-    // w = rotational velocity [rad/s]
     double v = 0.0;
     double w = 0.0;
 
@@ -238,20 +286,9 @@ bool Odometry::calculate_odometry(const rclcpp::Duration &duration)
     }
 
     delta_s = wheels_radius_ * (wheel_r + wheel_l) / 2.0;
-    
-    // theta_pos = wheels_radius_ * (wheel_r - wheel_l) / wheels_separation_;
-    // calc_yaw_.wheel_ang += theta_pos;
-    // theta = calc_yaw_.calc_filter(
-    //     imu_z_ * M_PI / 180.0f, step_time
-    // );
-    // delta_theta = theta - last_theta;
 
-    // theta = imu_angle_;
-    // delta_theta = theta - last_theta;
-
-    theta = wheels_radius_ * (wheel_r - wheel_l) / wheels_separation_;
-    delta_theta = theta;
-    
+    theta = imu_angle_;
+    delta_theta = theta - last_theta;
 
     // compute odometric pose
     robot_pose_[0] += delta_s * cos(robot_pose_[2] + (delta_theta / 2.0));
@@ -272,18 +309,23 @@ bool Odometry::calculate_odometry(const rclcpp::Duration &duration)
     return true;
 }
 
-double Odometry::calculate_angle_difference(uint16_t prev_angle, uint16_t current_angle) {
+double Odometry::calculate_angle_difference(uint16_t prev_angle, uint16_t current_angle)
+{
     int diff = current_angle - prev_angle;
 
-    if (diff > 32766) {  // 반대 방향으로 큰 변화가 감지된 경우 (0에서 65533로의 점프)
+    if (diff > 32766)
+    { // 반대 방향으로 큰 변화가 감지된 경우 (0에서 65533로의 점프)
         diff -= 65533;
-    } else if (diff < -32766) {  // 반대 방향으로 큰 변화가 감지된 경우 (65533에서 0으로의 점프)
+    }
+    else if (diff < -32766)
+    { // 반대 방향으로 큰 변화가 감지된 경우 (65533에서 0으로의 점프)
         diff += 65533;
     }
 
-    return static_cast<double>(diff) / 10.0;    
+    return static_cast<double>(diff) / 10.0;
 }
 
-double Odometry::degreesToRadians(double degrees) {
+double Odometry::degreesToRadians(double degrees)
+{
     return degrees * M_PI / 180.0;
 }

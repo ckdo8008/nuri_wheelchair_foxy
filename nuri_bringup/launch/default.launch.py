@@ -34,7 +34,7 @@ def generate_launch_description():
     imu_dir = LaunchConfiguration(
         'imu_dir',
         default=os.path.join(
-            get_package_share_directory('mpu6050driver'),
+            get_package_share_directory('nuri_imu'),
             'launch'
         )
     )
@@ -45,6 +45,8 @@ def generate_launch_description():
             'launch'
         )
     )
+    
+
 
     return LaunchDescription([
         # DeclareLaunchArgument(
@@ -52,7 +54,7 @@ def generate_launch_description():
         #     default_value=lidar_parameter
         # ),
         IncludeLaunchDescription(
-            PythonLaunchDescriptionSource([imu_dir, '/mpu6050driver_launch.py']),
+            PythonLaunchDescriptionSource([imu_dir, '/imu_node_launch.py']),
             launch_arguments={'params_file': imu_parameter}.items()
         ),
         IncludeLaunchDescription(
