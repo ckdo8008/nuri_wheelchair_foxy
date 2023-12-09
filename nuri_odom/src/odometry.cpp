@@ -68,7 +68,7 @@ Odometry::Odometry(
     msg_ftr_imu_sub_ =
         std::make_shared<message_filters::Subscriber<sensor_msgs::msg::Imu>>(
             nh_,
-            "imu/data");
+            "imu");
 
     // connect message filters to synchronizer
     joint_state_imu_sync_->connectInput(*msg_ftr_left_wheel_sub_, *msg_ftr_right_wheel_sub_, *msg_ftr_imu_sub_);

@@ -30,9 +30,9 @@ IMU_Node::IMU_Node()
   mpu6050_->printConfig();
   mpu6050_->printOffsets();
 
-  publisher_ = this->create_publisher<sensor_msgs::msg::Imu>("imu/data", 10);
+  publisher_ = this->create_publisher<sensor_msgs::msg::Imu>("imu", 10);
   publisher_raw_ = this->create_publisher<sensor_msgs::msg::Imu>("imu/data_raw", 10);
-  publisher_mag_ = this->create_publisher<sensor_msgs::msg::MagneticField>("imu/mag", 10);
+  publisher_mag_ = this->create_publisher<sensor_msgs::msg::MagneticField>("magnetic_field", 10);
 
   std::chrono::duration<int64_t, std::milli> frequency = 1000ms / this->get_parameter("frequency").as_int();
   timer_ = this->create_wall_timer(frequency, std::bind(&IMU_Node::handleInput, this));
@@ -59,13 +59,13 @@ void IMU_Node::handleInput()
 
   auto message = sensor_msgs::msg::Imu();
   message.header.stamp = stamp;
-  message.header.frame_id = "imu";
+  message.header.frame_id = "imu_link_raw";
   auto messagemag = sensor_msgs::msg::MagneticField();
   messagemag.header.stamp = stamp;
-  messagemag.header.frame_id = "imu";
+  messagemag.header.frame_id = "imu_link";
   auto msg = sensor_msgs::msg::Imu();
-  message.header.stamp = stamp;
-  message.header.frame_id = "imu";
+  msg.header.stamp = stamp;
+  msg.header.frame_id = "imu_link";
   
   message.linear_acceleration_covariance = {0};
   message.linear_acceleration.x = mpu6050_->getAccelerationX();
