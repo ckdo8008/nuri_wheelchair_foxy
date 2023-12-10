@@ -52,9 +52,10 @@ class TeleopJoyNode(Node):
         )
         self.qos = QoSProfile(depth=10)
         self.pub_twist = self.create_publisher(Twist, 'cmd_vel', self.qos)
+        self.pub_raw = self.create_publisher(ByteMultiArray, 'mc_rawdata', self.qos)
+        
         self.sub = self.create_subscription(Joy, 'hc/joy', self.cb_joy, 10)
         self.subscan = self.create_subscription(LaserScan, 'scan', self.cb_scan, 10)
-        self.pub_raw = self.create_publisher(ByteMultiArray, 'mc_rawdata', self.qos)
         self.subfl = self.create_subscription(Range, 'front_left', self.cbFrontL, 10)
         self.subfr = self.create_subscription(Range, 'front_right', self.cbFrontR, 10)
         self.subleft = self.create_subscription(Range, 'left', self.cbLeft, 10)
@@ -227,22 +228,6 @@ class TeleopJoyNode(Node):
         if self.rot < 0 and self.rot >= -0.05:
             self.rot = 0
     
-        # print ([joymsg, self.chk_forward, self.chk_left_side, self.chk_right_side])
-        # if joymsg.axes[1] > 0.0:
-        #     self.twist.linear.x = joymsg.axes[1] * self.max_fwd_vel
-        # elif joymsg.axes[1] < 0.0:
-        #     self.twist.linear.x = joymsg.axes[1] * self.max_rev_vel
-        # else:
-        #     self.twist.linear.x = 0.0
-
-        # self.twist.linear.y = 0.0; 
-        # self.twist.linear.z = 0.0
-        # self.twist.angular.x = 0.0; 
-        # self.twist.angular.y = 0.0; 
-        # self.twist.angular.z = joymsg.axes[0] * self.max_ang_vel
-        # print('V= %.2f m/s, W= %.2f deg/s'%(self.twist.linear.x, self.twist.angular.z))
-        
-
     def cb_timer(self):
         self.timer_inc+=1
         if self.auto_mode == False:

@@ -5,27 +5,54 @@
 #include <set>
 #include <string>
 #include <chrono>
+#include <cmath>
 
 #include <geometry_msgs/msg/twist.hpp>
+#include <geometry_msgs/msg/point.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rcutils/logging_macros.h>
 #include <sensor_msgs/msg/joy.hpp>
+#include <sensor_msgs/msg/laser_scan.hpp>
+#include <sensor_msgs/msg/range.hpp>
+#include <std_msgs/msg/byte_multi_array.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
 
 #include "nuri_joy/teleop_joy.hpp"
 
 #define ROS_INFO_NAMED RCUTILS_LOG_INFO_NAMED
 #define ROS_INFO_COND_NAMED RCUTILS_LOG_INFO_EXPRESSION_NAMED
+#define M_PI 3.14159265358979323846
 
 struct TeleopJoy::Impl
 {
   void joyCallback(const sensor_msgs::msg::Joy::SharedPtr joy);
-  void sendCmdVelMsg(const sensor_msgs::msg::Joy::SharedPtr, const std::string& which_map);
+  // void sendCmdVelMsg(const sensor_msgs::msg::Joy::SharedPtr, const std::string &which_map);
+  void cb_scan(const sensor_msgs::msg::LaserScan::SharedPtr msg);
+  void cb_frontl(const sensor_msgs::msg::Range::SharedPtr msg);
+  void cb_frontr(const sensor_msgs::msg::Range::SharedPtr msg);
+  void cb_left(const sensor_msgs::msg::Range::SharedPtr msg);
+  void cb_right(const sensor_msgs::msg::Range::SharedPtr msg);
+  void cb_back(const sensor_msgs::msg::Range::SharedPtr msg);
+  void cb_bottom(const sensor_msgs::msg::Range::SharedPtr msg);
+
+  void laser_scan_to_points(const sensor_msgs::msg::LaserScan::SharedPtr laser_scan);
+  void check_stop();
+  void sendControlOn();
+  double gen_profile(double v_ref, double vout, double dt = 0.01, double amax = 0.8);
+
+  rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub;
+  rclcpp::Publisher<std_msgs::msg::ByteMultiArray>::SharedPtr pub_raw;
 
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub;
-  rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub;
+  rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr sub_scan;
+  rclcpp::Subscription<sensor_msgs::msg::Range>::SharedPtr sub_fl;
+  rclcpp::Subscription<sensor_msgs::msg::Range>::SharedPtr sub_fr;
+  rclcpp::Subscription<sensor_msgs::msg::Range>::SharedPtr sub_l;
+  rclcpp::Subscription<sensor_msgs::msg::Range>::SharedPtr sub_r;
+  rclcpp::Subscription<sensor_msgs::msg::Range>::SharedPtr sub_bk;
+  rclcpp::Subscription<sensor_msgs::msg::Range>::SharedPtr sub_bt;
 
-  TeleopJoy* node_; 
+  TeleopJoy *node_;
 
   void cb_timer();
   rclcpp::TimerBase::SharedPtr timer_;
@@ -36,22 +63,65 @@ struct TeleopJoy::Impl
   double easeInSine(double value);
   std::chrono::steady_clock::time_point last_time_;
   bool haveSameSign(double a, double b);
+
+  double max_fwd_vel = 1.5;
+  double max_rev_m_s = 0.8;
+  double max_deg_s = 1.2;
+
+  bool chk_forward = false;
+  bool chk_left_side = false;
+  bool chk_right_side = false;
+
+  double cos_theta_ = std::cos(M_PI / 2); // cos(90°)
+  double sin_theta_ = std::sin(M_PI / 2);
+  int width = 1080;
+  int height = 2102;
+  int centerX = 1080 / 2 - 100;
+  int centerY = 2102 / 2 - 194;
+  double fow = 0;
+  double lastfow = 0;
+  double rot = 0;
+  double forw_prof = 0;
+
+  bool chk_ul_fl = false;
+  bool chk_ul_fr = false;
+  bool chk_ul_l = false;
+  bool chk_ul_r = false;
+  bool chk_ul_bt = false;
+  bool chk_ul_bk = false;
+
+  bool first = true;
+  std::vector<geometry_msgs::msg::Point> points_;
 };
 
-TeleopJoy::TeleopJoy(const rclcpp::NodeOptions &options): Node("nuri_joy_node", options)
+TeleopJoy::TeleopJoy(const rclcpp::NodeOptions &options) : Node("nuri_joy_node", options)
 {
   pimpl_ = new Impl;
   pimpl_->node_ = this;
 
   pimpl_->cmd_vel_pub = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
+  pimpl_->pub_raw = this->create_publisher<std_msgs::msg::ByteMultiArray>("mc_rawdata", 10);
   pimpl_->joy_sub = this->create_subscription<sensor_msgs::msg::Joy>("hc/joy", rclcpp::QoS(10),
-    std::bind(&TeleopJoy::Impl::joyCallback, this->pimpl_, std::placeholders::_1));
+                                                                     std::bind(&TeleopJoy::Impl::joyCallback, this->pimpl_, std::placeholders::_1));
+  pimpl_->sub_scan = this->create_subscription<sensor_msgs::msg::LaserScan>("scan", rclcpp::QoS(10),
+                                                                            std::bind(&TeleopJoy::Impl::cb_scan, this->pimpl_, std::placeholders::_1));
+  pimpl_->sub_fl = this->create_subscription<sensor_msgs::msg::Range>(
+      "front_left", rclcpp::QoS(10), std::bind(&TeleopJoy::Impl::cb_frontl, this->pimpl_, std::placeholders::_1));
+  pimpl_->sub_fr = this->create_subscription<sensor_msgs::msg::Range>(
+      "front_right", rclcpp::QoS(10), std::bind(&TeleopJoy::Impl::cb_frontr, this->pimpl_, std::placeholders::_1));
+  pimpl_->sub_l = this->create_subscription<sensor_msgs::msg::Range>(
+      "left", rclcpp::QoS(10), std::bind(&TeleopJoy::Impl::cb_left, this->pimpl_, std::placeholders::_1));
+  pimpl_->sub_r = this->create_subscription<sensor_msgs::msg::Range>(
+      "right", rclcpp::QoS(10), std::bind(&TeleopJoy::Impl::cb_right, this->pimpl_, std::placeholders::_1));
+  pimpl_->sub_bk = this->create_subscription<sensor_msgs::msg::Range>(
+      "back", rclcpp::QoS(10), std::bind(&TeleopJoy::Impl::cb_back, this->pimpl_, std::placeholders::_1));
+  pimpl_->sub_bt = this->create_subscription<sensor_msgs::msg::Range>(
+      "bottom", rclcpp::QoS(10), std::bind(&TeleopJoy::Impl::cb_bottom, this->pimpl_, std::placeholders::_1));
 
   pimpl_->twist_ = geometry_msgs::msg::Twist();
   pimpl_->timer_ = this->create_wall_timer(
       std::chrono::milliseconds(100),
-      std::bind(&TeleopJoy::Impl::cb_timer, this->pimpl_));  
-   
+      std::bind(&TeleopJoy::Impl::cb_timer, this->pimpl_));
 }
 
 TeleopJoy::~TeleopJoy()
@@ -59,132 +129,168 @@ TeleopJoy::~TeleopJoy()
   delete pimpl_;
 }
 
-void TeleopJoy::Impl::sendCmdVelMsg(const sensor_msgs::msg::Joy::SharedPtr joy_msg,
-                                         const std::string& which_map)
-{
-  if (joy_msg->axes[1] > 0.0) {
-    target_linear_ = joy_msg->axes[1] * 0.6;
-  }
-  else if (joy_msg->axes[1] < 0.0) {
-    target_linear_ = joy_msg->axes[1] * 0.4;
-  }
-  else {
-    target_linear_ = 0;
-  }
+// void TeleopJoy::Impl::sendCmdVelMsg(const sensor_msgs::msg::Joy::SharedPtr joy_msg,
+//                                     const std::string &which_map)
+// {
 
-  target_angular_ = joy_msg->axes[0] * 1.0;
-}
+// }
 
 void TeleopJoy::Impl::joyCallback(const sensor_msgs::msg::Joy::SharedPtr joy_msg)
 {
-  sendCmdVelMsg(joy_msg, "normal");
+  // sendCmdVelMsg(joy_msg, "normal");
+  if (first)
+  {
+    first = false;
+    sendControlOn();
+  }
+
+  fow = joy_msg->axes[1];
+  rot = joy_msg->axes[0];
+
+  if ((fow >= 0 && fow <= 0.05) || (fow < 0 && fow >= -0.05))
+    fow = 0;
+
+  if ((rot >= 0 && rot <= 0.05) || (rot < 0 && rot >= -0.05))
+    rot = 0;  
+}
+
+void TeleopJoy::Impl::cb_scan(const sensor_msgs::msg::LaserScan::SharedPtr msg)
+{
+  laser_scan_to_points(msg);
+  check_stop();
+}
+
+void TeleopJoy::Impl::cb_frontl(const sensor_msgs::msg::Range::SharedPtr msg)
+{
+  if (msg->range < 30.0)
+  {
+    chk_ul_fl = true;
+  }
+  else
+  {
+    chk_ul_fl = false;
+  }
+}
+
+void TeleopJoy::Impl::cb_frontr(const sensor_msgs::msg::Range::SharedPtr msg)
+{
+  if (msg->range < 30.0)
+  {
+    chk_ul_fr = true;
+  }
+  else
+  {
+    chk_ul_fr = false;
+  }  
+}
+
+void TeleopJoy::Impl::cb_back(const sensor_msgs::msg::Range::SharedPtr msg)
+{
+    if (msg->range < 30.0)
+  {
+    chk_ul_bk = true;
+  }
+  else
+  {
+    chk_ul_bk = false;
+  }
+  // printf("back===================================%f\n", msg->range );
+}
+
+void TeleopJoy::Impl::cb_right(const sensor_msgs::msg::Range::SharedPtr msg)
+{
+    if (msg->range < 40.0 || msg->range > 600.0 )
+  {
+    chk_ul_r = true;
+  }
+  else
+  {
+    chk_ul_r = false;
+  }
+  // printf("cb_right===================================%f %d\n", msg->range, chk_ul_r);
+}
+
+void TeleopJoy::Impl::cb_left(const sensor_msgs::msg::Range::SharedPtr msg)
+{
+    if (msg->range < 40.0 || msg->range > 600.0 )
+  {
+    chk_ul_l = true;
+  }
+  else
+  {
+    chk_ul_r = false;
+  }
+  // printf("cb_left===================================%f %d\n", msg->range, chk_ul_l );
+}
+
+void TeleopJoy::Impl::cb_bottom(const sensor_msgs::msg::Range::SharedPtr msg)
+{
+  if (msg->range > 30.0)
+  {
+    chk_ul_bt = true;
+  }
+  else
+  {
+    chk_ul_bt = false;
+  }
 }
 
 void TeleopJoy::Impl::cb_timer()
 {
-  auto now = std::chrono::steady_clock::now();
-  double elapsed_time = std::chrono::duration<double>(now - last_time_).count();
-  last_time_ = now;
 
-  // RCLCPP_INFO(
-  //     this->node_->get_logger(),
-  //     "[joy_msg] x : %f, z: %f",
-  //     target_linear_,
-  //     target_angular_);  
-
-  if (target_linear_ > 0.0 ) {
-    // 전진
-    if (current_linear_ < 0.0){
-      // 후진일 때
-      current_linear_ = 0;
-    }
-    else {
-      // 전진 중일 때, 정지일 때
-      current_linear_ += (target_linear_ - current_linear_) * easeInSine(elapsed_time);
-    }
-  }
-  else if (target_linear_ < 0.0 ) {
-    // 후진
-    if (current_linear_ > 0.0) {
-      // 전진 중일 때
-      current_linear_ = 0;
-    }
-    else {
-      // 후진일 때, 정지일 때
-      current_linear_ += (target_linear_ - current_linear_) * easeInSine(elapsed_time);
-    }
-  }
-  else {
-    current_linear_ = 0;
+  // printf("fow : %f, rot : %f %s %s\n", fow, rot, chk_ul_l ? "true": "false", chk_ul_r ? "true": "false");
+  if ((lastfow > 0 && fow < 0) || (lastfow < 0 && fow > 0))
+  {
+    fow = 0;
   }
 
-  current_linear_ += (target_linear_ - current_linear_) * easeInSine(elapsed_time);
-  if (target_linear_ > 0.0 ) {
-    // 전진
-    if (current_linear_ < 0.0){
-      // 후진일 때
-      current_linear_ = 0;
-    } 
-    else {
-      if (target_linear_ < current_linear_) {
-        current_linear_ = target_linear_;
-      }
-    }
-  }
-  else if (target_linear_ < 0.0 ) {
-    // 후진
-    if (current_linear_ > 0.0) {
-      // 전진 중일 때
-      current_linear_ = 0;
-    }
-    else {
-      if (target_linear_ > current_linear_) {
-        current_linear_ = target_linear_;
-      }      
-    }
-  }
-  else {
-    current_linear_ = 0;
+  if (fow > 0 && (chk_ul_fl || chk_ul_fr))
+  {
+    fow = 0;
   }
 
-  // current_angular_ += (target_angular_ - current_angular_) * easeInSine(elapsed_time);
-  // if (target_angular_ > 0.0) {
-  //   if (current_angular_ < 0.0) {
-  //     current_angular_ = 0;
-  //   }
-  //   else {
-  //     if (target_angular_ < current_angular_) {
-  //       current_angular_ = target_angular_;
-  //     }
-  //   }
-  // }
-  // else if (target_angular_ < 0.0) {
-  //   if (current_angular_ > 0.0) {
-  //     current_angular_ = 0;
-  //   }
-  //   else {
-  //     if (target_angular_ > current_angular_) {
-  //       current_angular_ = target_angular_;
-  //     }
-  //   }
-  // }
-  // else {
-  //   current_angular_ = 0;
-  // }
-  current_angular_ = target_angular_;
-
-  // current_linear_ += (target_linear_ - current_linear_) * easeInSine(elapsed_time);
-  // current_angular_ += (target_angular_ - current_angular_) * easeInSine(elapsed_time);
-
-  if (target_linear_ == 0) {
-    current_linear_ = 0;
-  }
-  if (target_angular_ == 0) {
-    current_angular_ = 0;
+  if (fow < 0 && (chk_ul_bt || chk_ul_bk))
+  {
+    fow = 0;
   }
 
-  twist_.linear.x = current_linear_;
-  twist_.angular.z = current_angular_;  
+  if (rot > 0 && chk_ul_l)
+  {
+    rot = 0;
+  }
+
+  if (rot < 0 && chk_ul_r)
+  {
+    rot = 0;
+  }
+
+  lastfow = fow;
+
+  if (fow != 0)
+  {
+    forw_prof = gen_profile(fow, forw_prof);
+  }
+  else
+  {
+    forw_prof = 0;
+  }
+
+  if (chk_forward && fow > 0)
+  {
+    forw_prof = 0;
+  }
+
+  if ((chk_left_side && rot > 0) || (chk_right_side && rot < 0))
+  {
+    rot = 0;
+  }
+
+  twist_.linear.x = (forw_prof >= 0) ? forw_prof * max_fwd_vel : forw_prof * max_rev_m_s;
+  twist_.angular.z = rot * max_deg_s;
+  twist_.linear.y = 0.0;
+  twist_.linear.z = 0.0;
+  twist_.angular.x = 0.0;
+  twist_.angular.y = 0.0;
 
   cmd_vel_pub->publish(twist_);
 }
@@ -197,6 +303,114 @@ double TeleopJoy::Impl::easeInSine(double value)
 bool TeleopJoy::Impl::haveSameSign(double a, double b)
 {
   return (a * b) >= 0.0;
+}
+
+void TeleopJoy::Impl::laser_scan_to_points(const sensor_msgs::msg::LaserScan::SharedPtr laser_scan)
+{
+  points_.clear();
+  double current_angle = laser_scan->angle_min;
+
+  for (auto range_value : laser_scan->ranges)
+  {
+    if (std::isnan(range_value))
+      continue;
+
+    double x = range_value * std::cos(current_angle);
+    double y = range_value * std::sin(current_angle);
+
+    geometry_msgs::msg::Point point;
+    point.x = x;
+    point.y = y;
+    point.z = 0.0;
+    points_.push_back(point);
+    current_angle += laser_scan->angle_increment;
+  }
+}
+
+void TeleopJoy::Impl::check_stop()
+{
+  chk_forward = false;
+  chk_left_side = false;
+  chk_right_side = false;
+
+  for (auto &point : points_)
+  {
+    double x = point.x * 350; // 미터를 픽셀로 변환
+    double y = point.y * 350; // 미터를 픽셀로 변환
+
+    double rotated_x = x * cos_theta_ - y * sin_theta_;
+    double rotated_y = x * sin_theta_ + y * cos_theta_;
+
+    double delta_x = rotated_x - 100;
+    double delta_y = rotated_y + 90;
+
+    double dx = centerX + rotated_x;
+    double dy = centerY - rotated_y;
+
+    if (dx > 0.0 && dy > 0.0)
+    {
+      if (dx <= width && dy <= height)
+      {
+        double distance = std::sqrt(delta_x * delta_x + delta_y * delta_y);
+        double ratio = std::min(std::max(distance - 200, 0.0) / 200.0, 1.0);
+
+        if (centerX - 20 <= dx && dx <= centerX + 220)
+        {
+          if (centerY >= dy && dy >= centerY - 200)
+            chk_forward = true;
+        }
+        else
+        {
+          if (ratio < 0.15)
+          {
+            if (dx < centerX + 20)
+              chk_left_side = true;
+            else if (dx > centerX + 180)
+              chk_right_side = true;
+          }
+        }
+      }
+    }
+  }
+}
+
+void TeleopJoy::Impl::sendControlOn()
+{
+  auto msg0 = std_msgs::msg::ByteMultiArray();
+  auto msg1 = std_msgs::msg::ByteMultiArray();
+
+  // 바이트 데이터 설정
+  msg0.data = {0xFF, 0xFE, 0x00, 0x03, 0xF0, 0x0C, 0x00};
+  msg1.data = {0xFF, 0xFE, 0x01, 0x03, 0xEF, 0x0C, 0x00};
+
+  // 메시지 발행
+  pub_raw->publish(msg0);
+  pub_raw->publish(msg0); // 필요에 따라 두 번 발행
+  pub_raw->publish(msg1);
+  pub_raw->publish(msg1); // 필요에 따라 두 번 발행
+}
+
+double TeleopJoy::Impl::gen_profile(double v_ref, double vout, double dt, double amax)
+{
+  double da = 0;
+  double dv = 0;
+
+  if (v_ref == vout)
+  {
+    dv = 0;
+  }
+  else
+  {
+    da = (v_ref - vout) / dt;
+    if (std::abs(da) >= amax)
+    {
+      da = (da > 0) ? amax : -amax;
+    }
+  }
+
+  dv = da * dt;
+  vout += dv;
+  return vout;
 }
 
 RCLCPP_COMPONENTS_REGISTER_NODE(TeleopJoy)
