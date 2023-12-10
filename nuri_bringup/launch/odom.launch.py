@@ -27,13 +27,13 @@ def generate_launch_description():
         )
     )
     
-    compass_dir = LaunchConfiguration(
-        'compass_dir',
-        default=os.path.join(
-            get_package_share_directory('hmc5883ldriver'),
-            'launch'
-        )
-    )
+    # compass_dir = LaunchConfiguration(
+    #     'compass_dir',
+    #     default=os.path.join(
+    #         get_package_share_directory('hmc5883ldriver'),
+    #         'launch'
+    #     )
+    # )
         
     return LaunchDescription([
         Node(
@@ -49,7 +49,7 @@ def generate_launch_description():
             PythonLaunchDescriptionSource([description_dir, '/nuri_state_publisher.launch.py']),
             launch_arguments={'use_sim_time': use_sim_time}.items(),
         ),
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource([compass_dir, '/hmc5883ldriver_launch.py']),
-        )
+        # IncludeLaunchDescription(
+        #     PythonLaunchDescriptionSource([compass_dir, '/hmc5883ldriver_launch.py']),
+        # )
     ])
