@@ -19,7 +19,7 @@
     use_gps_ts: false
     scan_topic: /scan
     interface_selection: serial
-    serial_port_: /dev/ttyUSB0
+    serial_port_: /dev/ttyLiDAR
     high_reflection: false
     compensation: false
     pubScan: true
