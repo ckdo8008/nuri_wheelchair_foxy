@@ -181,7 +181,7 @@ global_costmap:
       global_frame: map
       robot_base_frame: base_link
       use_sim_time: False
-      robot_radius: 0.22
+      robot_radius: 0.5
       resolution: 0.05
       plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
       obstacle_layer:
@@ -221,7 +221,7 @@ map_saver:
 
 planner_server:
   ros__parameters:
-    expected_planner_frequency: 20.0
+    expected_planner_frequency: 10.0
     use_sim_time: False
     planner_plugins: ["GridBased"]
     GridBased:

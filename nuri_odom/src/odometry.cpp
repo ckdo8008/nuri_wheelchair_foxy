@@ -287,8 +287,10 @@ bool Odometry::calculate_odometry(const rclcpp::Duration &duration)
 
     delta_s = wheels_radius_ * (wheel_r + wheel_l) / 2.0;
 
-    theta = imu_angle_;
-    delta_theta = theta - last_theta;
+    // theta = imu_angle_;
+    // delta_theta = theta - last_theta;
+    theta = wheels_radius_ * (wheel_r - wheel_l) / wheels_separation_;
+    delta_theta = theta;    
 
     // compute odometric pose
     robot_pose_[0] += delta_s * cos(robot_pose_[2] + (delta_theta / 2.0));

@@ -199,7 +199,7 @@ void TeleopJoy::Impl::cb_back(const sensor_msgs::msg::Range::SharedPtr msg)
 
 void TeleopJoy::Impl::cb_right(const sensor_msgs::msg::Range::SharedPtr msg)
 {
-    if (msg->range < 40.0 || msg->range > 600.0 )
+    if (msg->range < 60.0 || msg->range > 600.0 )
   {
     chk_ul_r = true;
   }
@@ -212,13 +212,13 @@ void TeleopJoy::Impl::cb_right(const sensor_msgs::msg::Range::SharedPtr msg)
 
 void TeleopJoy::Impl::cb_left(const sensor_msgs::msg::Range::SharedPtr msg)
 {
-    if (msg->range < 40.0 || msg->range > 600.0 )
+    if (msg->range < 60.0 || msg->range > 600.0 )
   {
     chk_ul_l = true;
   }
   else
   {
-    chk_ul_r = false;
+    chk_ul_l = false;
   }
   // printf("cb_left===================================%f %d\n", msg->range, chk_ul_l );
 }
@@ -239,6 +239,11 @@ void TeleopJoy::Impl::cb_timer()
 {
 
   // printf("fow : %f, rot : %f %s %s\n", fow, rot, chk_ul_l ? "true": "false", chk_ul_r ? "true": "false");
+  printf("chk_ul_l: %s chk_ul_r: %s chk_left_side:%s chk_right_side:%s\n", 
+  chk_ul_l ? "true": "false", 
+  chk_ul_r ? "true": "false", 
+  chk_left_side ? "true": "false", 
+  chk_right_side ? "true": "false");
   if ((lastfow > 0 && fow < 0) || (lastfow < 0 && fow > 0))
   {
     fow = 0;
@@ -361,7 +366,7 @@ void TeleopJoy::Impl::check_stop()
         }
         else
         {
-          if (ratio < 0.15)
+          if (ratio < 0.10)
           {
             if (dx < centerX + 20)
               chk_left_side = true;
