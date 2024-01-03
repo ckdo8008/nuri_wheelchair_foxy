@@ -33,6 +33,7 @@ IMU_Node::IMU_Node()
   publisher_ = this->create_publisher<sensor_msgs::msg::Imu>("imu", 10);
   publisher_raw_ = this->create_publisher<sensor_msgs::msg::Imu>("imu/data_raw", 10);
   publisher_mag_ = this->create_publisher<sensor_msgs::msg::MagneticField>("magnetic_field", 10);
+  publisher_pose = this->create_publisher<geometry_msgs::msg::Pose>("pose", 10);
 
   std::chrono::duration<int64_t, std::milli> frequency = 1000ms / this->get_parameter("frequency").as_int();
   timer_ = this->create_wall_timer(frequency, std::bind(&IMU_Node::handleInput, this));
@@ -66,6 +67,8 @@ void IMU_Node::handleInput()
   auto msg = sensor_msgs::msg::Imu();
   msg.header.stamp = stamp;
   msg.header.frame_id = "imu_link";
+
+  auto msgpose = geometry_msgs::msg::Pose();
   
   message.linear_acceleration_covariance = {0};
   message.linear_acceleration.x = mpu6050_->getAccelerationX();
@@ -91,6 +94,12 @@ void IMU_Node::handleInput()
     (float)message.linear_acceleration.x, (float)message.linear_acceleration.y, (float)message.linear_acceleration.z,
     (float)messagemag.magnetic_field.x, (float)messagemag.magnetic_field.y, (float)messagemag.magnetic_field.z);
 
+  // MadgwickAHRScomputeAngles();
+  msgpose.orientation.x = q0;
+  msgpose.orientation.y = q1;
+  msgpose.orientation.z = q2;
+  msgpose.orientation.w = q3;
+
   msg.linear_acceleration_covariance = {0};
   msg.angular_velocity_covariance = {0};
   msg.orientation_covariance = {0};
@@ -108,6 +117,7 @@ void IMU_Node::handleInput()
   publisher_raw_->publish(message); 
   publisher_mag_->publish(messagemag);
   publisher_->publish(msg);
+  publisher_pose->publish(msgpose);
 }
 
 int main(int argc, char ** argv)

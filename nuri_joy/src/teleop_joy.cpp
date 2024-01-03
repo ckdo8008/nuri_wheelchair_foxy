@@ -18,6 +18,7 @@
 #include <rclcpp_components/register_node_macro.hpp>
 
 #include "nuri_joy/teleop_joy.hpp"
+#include "nurirobot_msgs/msg/hc_control.hpp"
 
 #define ROS_INFO_NAMED RCUTILS_LOG_INFO_NAMED
 #define ROS_INFO_COND_NAMED RCUTILS_LOG_INFO_EXPRESSION_NAMED
@@ -35,6 +36,8 @@ struct TeleopJoy::Impl
   void cb_back(const sensor_msgs::msg::Range::SharedPtr msg);
   void cb_bottom(const sensor_msgs::msg::Range::SharedPtr msg);
 
+  void cb_hc(const nurirobot_msgs::msg::HCControl::SharedPtr msg);
+
   void laser_scan_to_points(const sensor_msgs::msg::LaserScan::SharedPtr laser_scan);
   void check_stop();
   void sendControlOn();
@@ -51,6 +54,8 @@ struct TeleopJoy::Impl
   rclcpp::Subscription<sensor_msgs::msg::Range>::SharedPtr sub_r;
   rclcpp::Subscription<sensor_msgs::msg::Range>::SharedPtr sub_bk;
   rclcpp::Subscription<sensor_msgs::msg::Range>::SharedPtr sub_bt;
+
+  rclcpp::Subscription<nurirobot_msgs::msg::HCControl>::SharedPtr sub_hc;
 
   TeleopJoy *node_;
 
@@ -92,6 +97,7 @@ struct TeleopJoy::Impl
 
   bool first = true;
   std::vector<geometry_msgs::msg::Point> points_;
+  int speedstep = 1;
 };
 
 TeleopJoy::TeleopJoy(const rclcpp::NodeOptions &options) : Node("nuri_joy_node", options)
@@ -117,6 +123,9 @@ TeleopJoy::TeleopJoy(const rclcpp::NodeOptions &options) : Node("nuri_joy_node",
       "back", rclcpp::QoS(10), std::bind(&TeleopJoy::Impl::cb_back, this->pimpl_, std::placeholders::_1));
   pimpl_->sub_bt = this->create_subscription<sensor_msgs::msg::Range>(
       "bottom", rclcpp::QoS(10), std::bind(&TeleopJoy::Impl::cb_bottom, this->pimpl_, std::placeholders::_1));
+
+  pimpl_->sub_hc = this->create_subscription<nurirobot_msgs::msg::HCControl>(
+      "hc/control", rclcpp::QoS(10), std::bind(&TeleopJoy::Impl::cb_hc, this->pimpl_, std::placeholders::_1));
 
   pimpl_->twist_ = geometry_msgs::msg::Twist();
   pimpl_->timer_ = this->create_wall_timer(
@@ -235,15 +244,59 @@ void TeleopJoy::Impl::cb_bottom(const sensor_msgs::msg::Range::SharedPtr msg)
   }
 }
 
+void TeleopJoy::Impl::cb_hc(const nurirobot_msgs::msg::HCControl::SharedPtr msg)
+{
+  speedstep = msg->speed;
+
+  switch (speedstep)
+  {
+  case 1:
+    /* code */
+    max_fwd_vel = 1.5;
+    max_rev_m_s = 0.8;
+    max_deg_s = 1.2;
+    break;
+  case 2:
+    /* code */
+    max_fwd_vel = 2.0;
+    max_rev_m_s = 1.2;
+    max_deg_s = 1.7;
+    break;
+  case 3:
+    /* code */
+    max_fwd_vel = 2.5;
+    max_rev_m_s = 1.6;
+    max_deg_s = 2.2;
+    break;
+  case 4:
+    /* code */
+    max_fwd_vel = 3.0;
+    max_rev_m_s = 2.0;
+    max_deg_s = 2.7;
+    break;
+  case 5:
+    /* code */
+    max_fwd_vel = 3.5;
+    max_rev_m_s = 2.4;
+    max_deg_s = 3.2;
+    break;
+  default:
+    max_fwd_vel = 1.5;
+    max_rev_m_s = 0.8;
+    max_deg_s = 1.2;
+    break;
+  }
+}
+
 void TeleopJoy::Impl::cb_timer()
 {
 
   // printf("fow : %f, rot : %f %s %s\n", fow, rot, chk_ul_l ? "true": "false", chk_ul_r ? "true": "false");
-  printf("chk_ul_l: %s chk_ul_r: %s chk_left_side:%s chk_right_side:%s\n", 
-  chk_ul_l ? "true": "false", 
-  chk_ul_r ? "true": "false", 
-  chk_left_side ? "true": "false", 
-  chk_right_side ? "true": "false");
+  // printf("chk_ul_l: %s chk_ul_r: %s chk_left_side:%s chk_right_side:%s\n", 
+  // chk_ul_l ? "true": "false", 
+  // chk_ul_r ? "true": "false", 
+  // chk_left_side ? "true": "false", 
+  // chk_right_side ? "true": "false");
   if ((lastfow > 0 && fow < 0) || (lastfow < 0 && fow > 0))
   {
     fow = 0;

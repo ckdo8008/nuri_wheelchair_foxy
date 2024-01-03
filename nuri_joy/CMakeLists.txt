@@ -21,6 +21,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(nurirobot_msgs REQUIRED)
 
 include_directories(include)
 
@@ -36,6 +37,7 @@ ament_target_dependencies(${PROJECT_NAME}
   "rclcpp"
   "rclcpp_components"
   "sensor_msgs"
+  "nurirobot_msgs"
 )
 
 rclcpp_components_register_nodes(${PROJECT_NAME}

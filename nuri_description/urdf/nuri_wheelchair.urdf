@@ -60,7 +60,7 @@
 			</geometry>
 		</collision>
 	</link>
-	<joint name="wheel_left_joint" type="fixed">
+	<joint name="wheel_left_joint" type="continuous">
 		<parent link="base_link"/>
 		<child link="wheel_left_link"/>
 		<origin xyz="0 0.225 0.3" rpy="0 0 0"/>
@@ -80,7 +80,7 @@
 			</geometry>
 		</collision>
 	</link>
-	<joint name="wheel_right_joint" type="fixed">
+	<joint name="wheel_right_joint" type="continuous">
 		<parent link="base_link"/>
 		<child link="wheel_right_link"/>
 		<origin xyz="0 -0.225 0.3" rpy="0 0 0"/>

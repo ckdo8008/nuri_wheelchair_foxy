@@ -7,7 +7,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/imu.hpp"
 #include "sensor_msgs/msg/magnetic_field.hpp"
-
+#include "geometry_msgs/msg/pose.hpp"
 extern "C" {
     #include "nuri_imu/MadgwickAHRS.h"
 }
@@ -22,6 +22,8 @@ class IMU_Node: public rclcpp::Node {
         rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr publisher_;
         rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr publisher_raw_;
         rclcpp::Publisher<sensor_msgs::msg::MagneticField>::SharedPtr publisher_mag_;
+
+        rclcpp::Publisher<geometry_msgs::msg::Pose>::SharedPtr publisher_pose;
         std::unique_ptr<MPU6050Sensor> mpu6050_;
         std::unique_ptr<HMC5883Sensor> hmc5883_;
         size_t count_;

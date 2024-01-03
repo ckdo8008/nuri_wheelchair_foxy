@@ -9,7 +9,7 @@
 #include <std_msgs/msg/u_int16.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/imu.hpp>
-// #include <sensor_msgs/msg/joint_state.hpp>
+#include <sensor_msgs/msg/joint_state.hpp>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include "nurirobot_msgs/msg/nurirobot_pos.hpp"
@@ -43,12 +43,13 @@ private:
         const std::shared_ptr<sensor_msgs::msg::Imu const> &imu_msg);
 
     void publish(const rclcpp::Time &now);
+    void update_joint_state(const rclcpp::Time &now);
 
     std::shared_ptr<rclcpp::Node> nh_;
     std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
-    // rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_sub_;
+    rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_pub_;
     // std::shared_ptr<message_filters::Subscriber<sensor_msgs::msg::JointState>> msg_ftr_joint_state_sub_;
 
     std::shared_ptr<message_filters::Subscriber<nurirobot_msgs::msg::NurirobotPos>> msg_ftr_left_wheel_sub_;
@@ -85,6 +86,11 @@ private:
 
     double calculate_angle_difference(uint16_t prev_angle, uint16_t current_angle);
     double degreesToRadians(double degrees);
+
+    const double RPM_TO_MS = 0.229 * 0.0034557519189487725;
+    const double TICK_TO_RAD = 0.001533981;
+    double robot_vel_l_;
+    double robot_vel_r_;
 };
 
 #endif
