@@ -24,13 +24,13 @@ def generate_launch_description():
             'param/mpu6050.yaml'
         )
     )
-    lidar_parameter = LaunchConfiguration(
-        'lidar_parameter',
-        default=os.path.join(
-            get_package_share_directory('nuri_bringup'),
-            'param/lsx10.yaml'
-        )
-    )
+    # lidar_parameter = LaunchConfiguration(
+    #     'lidar_parameter',
+    #     default=os.path.join(
+    #         get_package_share_directory('nuri_bringup'),
+    #         'param/lsx10.yaml'
+    #     )
+    # )
     imu_dir = LaunchConfiguration(
         'imu_dir',
         default=os.path.join(
@@ -62,79 +62,79 @@ def generate_launch_description():
                 [nurirobot_dir, '/nurirobot.launch.py']
             ),
         ),
-        Node(
-            package='ros2_sr04m_sensor',
-            executable='AJ_SR04M_Node',
-            name='AJ_SR04M_Node',
-            output='screen',
-            emulate_tty=True,
-            parameters=[
-                {'sensor_index': 0}  
-            ],
-            namespace='',
-        ),
-        Node(
-            package='ros2_sr04m_sensor',
-            executable='AJ_SR04M_Node',
-            name='AJ_SR04M_Node',
-            output='screen',
-            emulate_tty=True,
-            parameters=[
-                {'sensor_index': 1}  
-            ],
-            namespace='',
-        ),
-        Node(
-            package='ros2_sr04m_sensor',
-            executable='AJ_SR04M_Node',
-            name='AJ_SR04M_Node',
-            output='screen',
-            emulate_tty=True,
-            parameters=[
-                {'sensor_index': 2}  
-            ],
-            namespace='',
-        ),
-        Node(
-            package='ros2_sr04m_sensor',
-            executable='AJ_SR04M_Node',
-            name='AJ_SR04M_Node',
-            output='screen',
-            emulate_tty=True,
-            parameters=[
-                {'sensor_index': 3}  
-            ],
-            namespace='',
-        ),
-        Node(
-            package='ros2_sr04m_sensor',
-            executable='AJ_SR04M_Node',
-            name='AJ_SR04M_Node',
-            output='screen',
-            emulate_tty=True,
-            parameters=[
-                {'sensor_index': 4}  
-            ],
-            namespace='',
-        ),
-        Node(
-            package='ros2_sr04m_sensor',
-            executable='AJ_SR04M_Node',
-            name='AJ_SR04M_Node',
-            output='screen',
-            emulate_tty=True,
-            parameters=[
-                {'sensor_index': 5}  
-            ],
-            namespace='',
-        ),
-        Node(
-            package='lslidar_driver',
-            executable='lslidar_driver_node',
-            name='lslidar_driver_node',
-            output='screen',
-            emulate_tty=True,
-            parameters=[lidar_parameter],
-            namespace='/',
-        )
+        # Node(
+        #     package='ros2_sr04m_sensor',
+        #     executable='AJ_SR04M_Node',
+        #     name='AJ_SR04M_Node',
+        #     output='screen',
+        #     emulate_tty=True,
+        #     parameters=[
+        #         {'sensor_index': 0}  
+        #     ],
+        #     namespace='',
+        # ),
+        # Node(
+        #     package='ros2_sr04m_sensor',
+        #     executable='AJ_SR04M_Node',
+        #     name='AJ_SR04M_Node',
+        #     output='screen',
+        #     emulate_tty=True,
+        #     parameters=[
+        #         {'sensor_index': 1}  
+        #     ],
+        #     namespace='',
+        # ),
+        # Node(
+        #     package='ros2_sr04m_sensor',
+        #     executable='AJ_SR04M_Node',
+        #     name='AJ_SR04M_Node',
+        #     output='screen',
+        #     emulate_tty=True,
+        #     parameters=[
+        #         {'sensor_index': 2}  
+        #     ],
+        #     namespace='',
+        # ),
+        # Node(
+        #     package='ros2_sr04m_sensor',
+        #     executable='AJ_SR04M_Node',
+        #     name='AJ_SR04M_Node',
+        #     output='screen',
+        #     emulate_tty=True,
+        #     parameters=[
+        #         {'sensor_index': 3}  
+        #     ],
+        #     namespace='',
+        # ),
+        # Node(
+        #     package='ros2_sr04m_sensor',
+        #     executable='AJ_SR04M_Node',
+        #     name='AJ_SR04M_Node',
+        #     output='screen',
+        #     emulate_tty=True,
+        #     parameters=[
+        #         {'sensor_index': 4}  
+        #     ],
+        #     namespace='',
+        # ),
+        # Node(
+        #     package='ros2_sr04m_sensor',
+        #     executable='AJ_SR04M_Node',
+        #     name='AJ_SR04M_Node',
+        #     output='screen',
+        #     emulate_tty=True,
+        #     parameters=[
+        #         {'sensor_index': 5}  
+        #     ],
+        #     namespace='',
+        # ),
+        # Node(
+        #     package='lslidar_driver',
+        #     executable='lslidar_driver_node',
+        #     name='lslidar_driver_node',
+        #     output='screen',
+        #     emulate_tty=True,
+        #     parameters=[lidar_parameter],
+        #     namespace='/',
+        # )
     ])
