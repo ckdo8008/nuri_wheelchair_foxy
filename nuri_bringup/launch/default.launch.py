@@ -17,13 +17,13 @@ from launch_ros.actions import Node
 from ament_index_python.packages import get_package_prefix
 
 def generate_launch_description():
-    imu_parameter = LaunchConfiguration(
-        'imu_parameter',
-        default=os.path.join(
-            get_package_share_directory('nuri_bringup'),
-            'param/mpu6050.yaml'
-        )
-    )
+    # imu_parameter = LaunchConfiguration(
+    #     'imu_parameter',
+    #     default=os.path.join(
+    #         get_package_share_directory('nuri_bringup'),
+    #         'param/mpu6050.yaml'
+    #     )
+    # )
     # lidar_parameter = LaunchConfiguration(
     #     'lidar_parameter',
     #     default=os.path.join(
@@ -31,13 +31,13 @@ def generate_launch_description():
     #         'param/lsx10.yaml'
     #     )
     # )
-    imu_dir = LaunchConfiguration(
-        'imu_dir',
-        default=os.path.join(
-            get_package_share_directory('nuri_imu'),
-            'launch'
-        )
-    )
+    # imu_dir = LaunchConfiguration(
+    #     'imu_dir',
+    #     default=os.path.join(
+    #         get_package_share_directory('nuri_imu'),
+    #         'launch'
+    #     )
+    # )
     nurirobot_dir = LaunchConfiguration(
         'nurirobot_dir',
         default=os.path.join(
@@ -53,10 +53,10 @@ def generate_launch_description():
         #     'lidar_parameter',
         #     default_value=lidar_parameter
         # ),
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource([imu_dir, '/imu_node_launch.py']),
-            launch_arguments={'params_file': imu_parameter}.items()
-        ),
+        # IncludeLaunchDescription(
+        #     PythonLaunchDescriptionSource([imu_dir, '/imu_node_launch.py']),
+        #     launch_arguments={'params_file': imu_parameter}.items()
+        # ),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
                 [nurirobot_dir, '/nurirobot.launch.py']

@@ -66,13 +66,14 @@ Odometry::Odometry(
             nh_,
             "right_wheel_pos");
 
-    msg_ftr_imu_sub_ =
-        std::make_shared<message_filters::Subscriber<sensor_msgs::msg::Imu>>(
-            nh_,
-            "imu");
+    // msg_ftr_imu_sub_ =
+    //     std::make_shared<message_filters::Subscriber<sensor_msgs::msg::Imu>>(
+    //         nh_,
+    //         "imu");
 
     // connect message filters to synchronizer
-    joint_state_imu_sync_->connectInput(*msg_ftr_left_wheel_sub_, *msg_ftr_right_wheel_sub_, *msg_ftr_imu_sub_);
+    // joint_state_imu_sync_->connectInput(*msg_ftr_left_wheel_sub_, *msg_ftr_right_wheel_sub_, *msg_ftr_imu_sub_);
+    joint_state_imu_sync_->connectInput(*msg_ftr_left_wheel_sub_, *msg_ftr_right_wheel_sub_);
 
     joint_state_imu_sync_->setInterMessageLowerBound(
         0,
@@ -82,40 +83,60 @@ Odometry::Odometry(
         1,
         rclcpp::Duration(30ms));
 
-    joint_state_imu_sync_->setInterMessageLowerBound(
-        2,
-        rclcpp::Duration(2ms));
+    // joint_state_imu_sync_->setInterMessageLowerBound(
+    //     2,
+    //     rclcpp::Duration(2ms));
 
     joint_state_imu_sync_->registerCallback(
         std::bind(
             &Odometry::joint_state_and_imu_callback,
             this,
             std::placeholders::_1,
-            std::placeholders::_2,
-            std::placeholders::_3));
+            std::placeholders::_2));
 }
+
+// void Odometry::joint_state_and_imu_callback(
+//     const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &left_wheel_msg,
+//     const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &right_wheel_msg,
+//     const std::shared_ptr<sensor_msgs::msg::Imu const> &imu_msg)
+// {
+//     // RCLCPP_INFO(
+//     //     nh_->get_logger(),
+//     //     "[imu_msg] nanosec : %d",
+//     //     imu_msg->header.stamp.nanosec);
+
+//     static rclcpp::Time last_time = imu_msg->header.stamp;
+//     rclcpp::Duration duration(imu_msg->header.stamp.nanosec - last_time.nanoseconds());
+
+//     update_pos_state(left_wheel_msg, right_wheel_msg);
+//     update_imu(imu_msg);
+//     calculate_odometry(duration);
+
+//     publish(imu_msg->header.stamp);
+//     update_joint_state(imu_msg->header.stamp);
+
+//     last_time = imu_msg->header.stamp;
+// }
 
 void Odometry::joint_state_and_imu_callback(
     const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &left_wheel_msg,
-    const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &right_wheel_msg,
-    const std::shared_ptr<sensor_msgs::msg::Imu const> &imu_msg)
+    const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &right_wheel_msg)
 {
     // RCLCPP_INFO(
     //     nh_->get_logger(),
     //     "[imu_msg] nanosec : %d",
     //     imu_msg->header.stamp.nanosec);
 
-    static rclcpp::Time last_time = imu_msg->header.stamp;
-    rclcpp::Duration duration(imu_msg->header.stamp.nanosec - last_time.nanoseconds());
+    static rclcpp::Time last_time = left_wheel_msg->header.stamp;
+    rclcpp::Duration duration(left_wheel_msg->header.stamp.nanosec - last_time.nanoseconds());
 
     update_pos_state(left_wheel_msg, right_wheel_msg);
-    update_imu(imu_msg);
     calculate_odometry(duration);
 
-    publish(imu_msg->header.stamp);
-    update_joint_state(imu_msg->header.stamp);
+    publish(left_wheel_msg->header.stamp);
+    update_joint_state(left_wheel_msg->header.stamp);
 
-    last_time = imu_msg->header.stamp;
+    last_time = left_wheel_msg->header.stamp;
 }
 
 void Odometry::publish(const rclcpp::Time &now)
@@ -214,12 +235,12 @@ void Odometry::update_pos_state(const std::shared_ptr<nurirobot_msgs::msg::Nurir
     last_joint_positions[1] = right_wheel_msg->pos;
 }
 
-void Odometry::update_imu(const std::shared_ptr<sensor_msgs::msg::Imu const> &imu)
-{
-    imu_angle_ = atan2f(
-        imu->orientation.x * imu->orientation.y + imu->orientation.w * imu->orientation.z,
-        0.5f - imu->orientation.y * imu->orientation.y - imu->orientation.z * imu->orientation.z);
-}
+// void Odometry::update_imu(const std::shared_ptr<sensor_msgs::msg::Imu const> &imu)
+// {
+//     imu_angle_ = atan2f(
+//         imu->orientation.x * imu->orientation.y + imu->orientation.w * imu->orientation.z,
+//         0.5f - imu->orientation.y * imu->orientation.y - imu->orientation.z * imu->orientation.z);
+// }
 
 bool Odometry::calculate_odometry(const rclcpp::Duration &duration)
 {

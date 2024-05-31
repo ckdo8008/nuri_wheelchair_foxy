@@ -32,15 +32,18 @@ public:
 private:
     bool calculate_odometry(const rclcpp::Duration &duration);
 
-    void update_imu(const std::shared_ptr<sensor_msgs::msg::Imu const> &imu);
+    // void update_imu(const std::shared_ptr<sensor_msgs::msg::Imu const> &imu);
     void update_pos_state(const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &left_wheel_msg,
         const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &right_wheel_msg);
     // void update_joint_state(const std::shared_ptr<sensor_msgs::msg::JointState const> &joint_state);
     // void joint_state_callback(const sensor_msgs::msg::JointState::SharedPtr joint_state_msg);
+    // void joint_state_and_imu_callback(
+    //     const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &left_wheel_msg,
+    //     const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &right_wheel_msg,
+    //     const std::shared_ptr<sensor_msgs::msg::Imu const> &imu_msg);
     void joint_state_and_imu_callback(
         const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &left_wheel_msg,
-        const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &right_wheel_msg,
-        const std::shared_ptr<sensor_msgs::msg::Imu const> &imu_msg);
+        const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &right_wheel_msg);    
 
     void publish(const rclcpp::Time &now);
     void update_joint_state(const rclcpp::Time &now);
@@ -56,11 +59,15 @@ private:
     std::shared_ptr<message_filters::Subscriber<nurirobot_msgs::msg::NurirobotPos>> msg_ftr_right_wheel_sub_;
     std::shared_ptr<message_filters::Subscriber<sensor_msgs::msg::Imu>> msg_ftr_imu_sub_;
 
+    // typedef message_filters::sync_policies::ApproximateTime<
+    //     nurirobot_msgs::msg::NurirobotPos,
+    //     nurirobot_msgs::msg::NurirobotPos,
+    //     sensor_msgs::msg::Imu>
+    //     SyncPolicyJointStateImu;
     typedef message_filters::sync_policies::ApproximateTime<
         nurirobot_msgs::msg::NurirobotPos,
-        nurirobot_msgs::msg::NurirobotPos,
-        sensor_msgs::msg::Imu>
-        SyncPolicyJointStateImu;
+        nurirobot_msgs::msg::NurirobotPos>
+        SyncPolicyJointStateImu;    
     typedef message_filters::Synchronizer<SyncPolicyJointStateImu> SynchronizerJointStateImu;
 
     std::shared_ptr<SynchronizerJointStateImu> joint_state_imu_sync_;
