@@ -98,6 +98,18 @@ struct TeleopJoy::Impl
   bool first = true;
   std::vector<geometry_msgs::msg::Point> points_;
   int speedstep = 1;
+
+  double kf_state_fl = 0.0; // 칼만 필터 상태 변수 (front left)
+  double kf_state_fr = 0.0; // 칼만 필터 상태 변수 (front right)
+  double kf_state_left = 0.0;
+  double kf_state_right = 0.0;
+  double kf_state_back = 0.0;
+  double kf_state_bottom = 0.0;
+
+  // 필터 매개변수
+  double kf_process_variance = 0.01; // 프로세스 분산
+  double kf_measurement_variance = 0.1; // 측정 분산
+  double kf_estimated_error = 1.0; // 추정 오차  
 };
 
 TeleopJoy::TeleopJoy(const rclcpp::NodeOptions &options) : Node("nuri_joy_node", options)
@@ -154,7 +166,7 @@ void TeleopJoy::Impl::joyCallback(const sensor_msgs::msg::Joy::SharedPtr joy_msg
   }
 
   fow = joy_msg->axes[1];
-  rot = joy_msg->axes[0];
+  rot = joy_msg->axes[0] * -1;
 
   if ((fow >= 0 && fow <= 0.05) || (fow < 0 && fow >= -0.05))
     fow = 0;
@@ -171,77 +183,159 @@ void TeleopJoy::Impl::cb_scan(const sensor_msgs::msg::LaserScan::SharedPtr msg)
 
 void TeleopJoy::Impl::cb_frontl(const sensor_msgs::msg::Range::SharedPtr msg)
 {
-  if (msg->range < 30.0)
-  {
+  // if (msg->range < 0.3)
+  // {
+  //   chk_ul_fl = true;
+  // }
+  // else
+  // {
+  //   chk_ul_fl = false;
+  // }
+  double priori_estimate = kf_state_fl;
+  double priori_error = kf_estimated_error + kf_process_variance;
+  double blending_factor = priori_error / (priori_error + kf_measurement_variance);
+  double residual = msg->range - priori_estimate;
+  double corrected_estimate = priori_estimate + blending_factor * residual;
+  kf_state_fl = corrected_estimate;
+  kf_estimated_error = (1 - blending_factor) * priori_error;
+
+  if (kf_state_fl < 0.25) {
     chk_ul_fl = true;
-  }
-  else
-  {
+  } else {
     chk_ul_fl = false;
-  }
+  }  
 }
 
 void TeleopJoy::Impl::cb_frontr(const sensor_msgs::msg::Range::SharedPtr msg)
 {
-  if (msg->range < 30.0)
-  {
+  // if (msg->range < 0.3)
+  // {
+  //   chk_ul_fr = true;
+  // }
+  // else
+  // {
+  //   chk_ul_fr = false;
+  // }  
+
+  double priori_estimate = kf_state_fr;
+  double priori_error = kf_estimated_error + kf_process_variance;
+  double blending_factor = priori_error / (priori_error + kf_measurement_variance);
+  double residual = msg->range - priori_estimate;
+  double corrected_estimate = priori_estimate + blending_factor * residual;
+  kf_state_fr = corrected_estimate;
+  kf_estimated_error = (1 - blending_factor) * priori_error;
+
+  if (kf_state_fr < 0.25) {
     chk_ul_fr = true;
-  }
-  else
-  {
+  } else {
     chk_ul_fr = false;
   }  
 }
 
 void TeleopJoy::Impl::cb_back(const sensor_msgs::msg::Range::SharedPtr msg)
 {
-    if (msg->range < 30.0)
-  {
+  //   if (msg->range < 0.3)
+  // {
+  //   chk_ul_bk = true;
+  // }
+  // else
+  // {
+  //   chk_ul_bk = false;
+  // }
+
+  double priori_estimate = kf_state_back;
+  double priori_error = kf_estimated_error + kf_process_variance;
+  double blending_factor = priori_error / (priori_error + kf_measurement_variance);
+  double residual = msg->range - priori_estimate;
+  double corrected_estimate = priori_estimate + blending_factor * residual;
+  kf_state_back = corrected_estimate;
+  kf_estimated_error = (1 - blending_factor) * priori_error;
+
+  if (kf_state_back < 0.25) {
     chk_ul_bk = true;
-  }
-  else
-  {
+  } else {
     chk_ul_bk = false;
-  }
+  }   
   // printf("back===================================%f\n", msg->range );
 }
 
 void TeleopJoy::Impl::cb_right(const sensor_msgs::msg::Range::SharedPtr msg)
 {
-    if (msg->range < 60.0 || msg->range > 600.0 )
-  {
+  //   if (msg->range < 0.4 )
+  // {
+  //   chk_ul_r = true;
+  // }
+  // else
+  // {
+  //   chk_ul_r = false;
+  // }
+  double priori_estimate = kf_state_right;
+  double priori_error = kf_estimated_error + kf_process_variance;
+  double blending_factor = priori_error / (priori_error + kf_measurement_variance);
+  double residual = msg->range - priori_estimate;
+  double corrected_estimate = priori_estimate + blending_factor * residual;
+  kf_state_right = corrected_estimate;
+  kf_estimated_error = (1 - blending_factor) * priori_error;
+
+  if (kf_state_right < 0.25) {
     chk_ul_r = true;
-  }
-  else
-  {
+  } else {
     chk_ul_r = false;
-  }
+  }     
   // printf("cb_right===================================%f %d\n", msg->range, chk_ul_r);
 }
 
 void TeleopJoy::Impl::cb_left(const sensor_msgs::msg::Range::SharedPtr msg)
 {
-    if (msg->range < 60.0 || msg->range > 600.0 )
-  {
+  //   if (msg->range < 0.4)
+  // {
+  //   chk_ul_l = true;
+  // }
+  // else
+  // {
+  //   chk_ul_l = false;
+  // }
+  double priori_estimate = kf_state_left;
+  double priori_error = kf_estimated_error + kf_process_variance;
+  double blending_factor = priori_error / (priori_error + kf_measurement_variance);
+  double residual = msg->range - priori_estimate;
+  double corrected_estimate = priori_estimate + blending_factor * residual;
+  kf_state_left = corrected_estimate;
+  kf_estimated_error = (1 - blending_factor) * priori_error;
+
+  if (kf_state_left < 0.25) {
     chk_ul_l = true;
-  }
-  else
-  {
+  } else {
     chk_ul_l = false;
-  }
+  }       
   // printf("cb_left===================================%f %d\n", msg->range, chk_ul_l );
 }
 
 void TeleopJoy::Impl::cb_bottom(const sensor_msgs::msg::Range::SharedPtr msg)
 {
-  if (msg->range > 30.0)
-  {
+  // if (msg->range > 0.3)
+  // {
+  //   chk_ul_bt = true;
+  // }
+  // else
+  // {
+  //   chk_ul_bt = false;
+  // }
+
+  double priori_estimate = kf_state_bottom;
+  double priori_error = kf_estimated_error + kf_process_variance;
+  double blending_factor = priori_error / (priori_error + kf_measurement_variance);
+  double residual = msg->range - priori_estimate;
+  double corrected_estimate = priori_estimate + blending_factor * residual;
+  kf_state_bottom = corrected_estimate;
+  kf_estimated_error = (1 - blending_factor) * priori_error;
+
+  if (kf_state_bottom > 0.25) {
     chk_ul_bt = true;
-  }
-  else
-  {
+  } else {
     chk_ul_bt = false;
-  }
+  }      
+
 }
 
 void TeleopJoy::Impl::cb_hc(const nurirobot_msgs::msg::HCControl::SharedPtr msg)
@@ -252,38 +346,38 @@ void TeleopJoy::Impl::cb_hc(const nurirobot_msgs::msg::HCControl::SharedPtr msg)
   {
   case 1:
     /* code */
-    max_fwd_vel = 1.5;
+    max_fwd_vel = 1.0;
     max_rev_m_s = 0.8;
-    max_deg_s = 1.2;
+    max_deg_s = 1.0;
     break;
   case 2:
     /* code */
-    max_fwd_vel = 2.0;
+    max_fwd_vel = 1.4;
     max_rev_m_s = 1.2;
-    max_deg_s = 1.7;
+    max_deg_s = 1.2;
     break;
   case 3:
     /* code */
-    max_fwd_vel = 2.5;
+    max_fwd_vel = 2.0;
     max_rev_m_s = 1.6;
-    max_deg_s = 2.2;
+    max_deg_s = 1.5;
     break;
   case 4:
     /* code */
-    max_fwd_vel = 3.0;
+    max_fwd_vel = 2.5;
     max_rev_m_s = 2.0;
-    max_deg_s = 2.7;
+    max_deg_s = 1.5;
     break;
   case 5:
     /* code */
-    max_fwd_vel = 3.5;
-    max_rev_m_s = 2.4;
-    max_deg_s = 3.2;
+    max_fwd_vel = 3.0;
+    max_rev_m_s = 2.0;
+    max_deg_s = 1.5;
     break;
   default:
-    max_fwd_vel = 1.5;
+    max_fwd_vel = 1.0;
     max_rev_m_s = 0.8;
-    max_deg_s = 1.2;
+    max_deg_s = 1.0;
     break;
   }
 }
@@ -291,7 +385,7 @@ void TeleopJoy::Impl::cb_hc(const nurirobot_msgs::msg::HCControl::SharedPtr msg)
 void TeleopJoy::Impl::cb_timer()
 {
 
-  // printf("fow : %f, rot : %f %s %s\n", fow, rot, chk_ul_l ? "true": "false", chk_ul_r ? "true": "false");
+  // printf("fow : %f, rot : %f %s %s\n", fow, rot, chk_ul_fl ? "true": "false", chk_ul_fr ? "true": "false");
   // printf("chk_ul_l: %s chk_ul_r: %s chk_left_side:%s chk_right_side:%s\n", 
   // chk_ul_l ? "true": "false", 
   // chk_ul_r ? "true": "false", 
@@ -302,12 +396,12 @@ void TeleopJoy::Impl::cb_timer()
     fow = 0;
   }
 
-  if (fow > 0 && (chk_ul_fl || chk_ul_fr))
-  {
-    fow = 0;
-  }
+  // if (fow > 0 && (chk_ul_fl || chk_ul_fr))
+  // {
+  //   fow = 0;
+  // }
 
-  if (fow < 0 && (chk_ul_bt || chk_ul_bk))
+  if (fow < 0 && chk_ul_bk)
   {
     fow = 0;
   }
