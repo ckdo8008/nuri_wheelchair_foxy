@@ -168,11 +168,17 @@ void TeleopJoy::Impl::joyCallback(const sensor_msgs::msg::Joy::SharedPtr joy_msg
   fow = joy_msg->axes[1];
   rot = joy_msg->axes[0] * -1;
 
-  if ((fow >= 0 && fow <= 0.05) || (fow < 0 && fow >= -0.05))
-    fow = 0;
+  if ((fow >= 0 && fow <= 0.05) || (fow < 0 && fow >= -0.05)) {
+    if ((rot >= 0 && rot <= 0.05) || (rot < 0 && rot >= -0.05)) {
+      fow = 0;
+    }
+  }
 
-  if ((rot >= 0 && rot <= 0.05) || (rot < 0 && rot >= -0.05))
-    rot = 0;  
+  if ((rot >= 0 && rot <= 0.05) || (rot < 0 && rot >= -0.05)) {
+    if ((fow >= 0 && fow <= 0.05) || (fow < 0 && fow >= -0.05)) {
+      rot = 0;  
+    }
+  }
 }
 
 void TeleopJoy::Impl::cb_scan(const sensor_msgs::msg::LaserScan::SharedPtr msg)
