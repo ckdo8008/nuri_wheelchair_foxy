@@ -8,6 +8,7 @@ options = {
   tracking_frame = "imu_link",
   published_frame = "odom",
   odom_frame = "odom",
+  -- use_imu_data = false,
   provide_odom_frame = false,
   publish_frame_projected_to_2d = true,
   use_odometry = false,
@@ -34,6 +35,7 @@ MAP_BUILDER.use_trajectory_builder_2d = true
 
 TRAJECTORY_BUILDER_2D.min_range = 0.2
 TRAJECTORY_BUILDER_2D.max_range = 3.5
+TRAJECTORY_BUILDER_2D.submaps.num_range_data = 35 
 TRAJECTORY_BUILDER_2D.missing_data_ray_length = 3.0
 TRAJECTORY_BUILDER_2D.use_imu_data = false
 TRAJECTORY_BUILDER_2D.use_online_correlative_scan_matching = true 

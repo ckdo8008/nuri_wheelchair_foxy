@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
     auto diff_drive_controller =
         std::make_shared<DiffDriveController>(
             0.45,  // wheel_separation
-            0.29); // wheel_radius
+            0.01088); // wheel_radius
 
     executor.add_node(diff_drive_controller);
     executor.spin();

@@ -22,13 +22,7 @@ Odometry::Odometry(
     nh_->declare_parameter("odometry.frame_id");
     nh_->declare_parameter("odometry.child_frame_id");
 
-    // nh_->declare_parameter("odometry.use_imu");
     nh_->declare_parameter("odometry.publish_tf");
-
-    // nh_->get_parameter_or<bool>(
-    //     "odometry.use_imu",
-    //     use_imu_,
-    //     true);
 
     nh_->get_parameter_or<bool>(
         "odometry.publish_tf",
@@ -66,13 +60,6 @@ Odometry::Odometry(
             nh_,
             "right_wheel_pos");
 
-    // msg_ftr_imu_sub_ =
-    //     std::make_shared<message_filters::Subscriber<sensor_msgs::msg::Imu>>(
-    //         nh_,
-    //         "imu");
-
-    // connect message filters to synchronizer
-    // joint_state_imu_sync_->connectInput(*msg_ftr_left_wheel_sub_, *msg_ftr_right_wheel_sub_, *msg_ftr_imu_sub_);
     joint_state_imu_sync_->connectInput(*msg_ftr_left_wheel_sub_, *msg_ftr_right_wheel_sub_);
 
     joint_state_imu_sync_->setInterMessageLowerBound(
@@ -83,10 +70,6 @@ Odometry::Odometry(
         1,
         rclcpp::Duration(30ms));
 
-    // joint_state_imu_sync_->setInterMessageLowerBound(
-    //     2,
-    //     rclcpp::Duration(2ms));
-
     joint_state_imu_sync_->registerCallback(
         std::bind(
             &Odometry::joint_state_and_imu_callback,
@@ -95,38 +78,10 @@ Odometry::Odometry(
             std::placeholders::_2));
 }
 
-// void Odometry::joint_state_and_imu_callback(
-//     const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &left_wheel_msg,
-//     const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &right_wheel_msg,
-//     const std::shared_ptr<sensor_msgs::msg::Imu const> &imu_msg)
-// {
-//     // RCLCPP_INFO(
-//     //     nh_->get_logger(),
-//     //     "[imu_msg] nanosec : %d",
-//     //     imu_msg->header.stamp.nanosec);
-
-//     static rclcpp::Time last_time = imu_msg->header.stamp;
-//     rclcpp::Duration duration(imu_msg->header.stamp.nanosec - last_time.nanoseconds());
-
-//     update_pos_state(left_wheel_msg, right_wheel_msg);
-//     update_imu(imu_msg);
-//     calculate_odometry(duration);
-
-//     publish(imu_msg->header.stamp);
-//     update_joint_state(imu_msg->header.stamp);
-
-//     last_time = imu_msg->header.stamp;
-// }
-
 void Odometry::joint_state_and_imu_callback(
     const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &left_wheel_msg,
     const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &right_wheel_msg)
 {
-    // RCLCPP_INFO(
-    //     nh_->get_logger(),
-    //     "[imu_msg] nanosec : %d",
-    //     imu_msg->header.stamp.nanosec);
-
     static rclcpp::Time last_time = left_wheel_msg->header.stamp;
     rclcpp::Duration duration(left_wheel_msg->header.stamp.nanosec - last_time.nanoseconds());
 
@@ -162,21 +117,6 @@ void Odometry::publish(const rclcpp::Time &now)
     odom_msg->twist.twist.linear.x = robot_vel_[0];
     odom_msg->twist.twist.angular.z = robot_vel_[2];
 
-    // TODO(Will Son): Find more accurate covariance.
-    // odom_msg->pose.covariance[0] = 0.05;
-    // odom_msg->pose.covariance[7] = 0.05;
-    // odom_msg->pose.covariance[14] = 1.0e-9;
-    // odom_msg->pose.covariance[21] = 1.0e-9;
-    // odom_msg->pose.covariance[28] = 1.0e-9;
-    // odom_msg->pose.covariance[35] = 0.0872665;
-
-    // odom_msg->twist.covariance[0] = 0.001;
-    // odom_msg->twist.covariance[7] = 1.0e-9;
-    // odom_msg->twist.covariance[14] = 1.0e-9;
-    // odom_msg->twist.covariance[21] = 1.0e-9;
-    // odom_msg->twist.covariance[28] = 1.0e-9;
-    // odom_msg->twist.covariance[35] = 0.001;
-
     geometry_msgs::msg::TransformStamped odom_tf;
 
     odom_tf.transform.translation.x = odom_msg->pose.pose.position.x;
@@ -209,16 +149,6 @@ void Odometry::update_joint_state(const rclcpp::Time &now)
 
     msg->velocity.push_back(RPM_TO_MS * robot_vel_l_);
     msg->velocity.push_back(RPM_TO_MS * robot_vel_r_);
-/*
-  msg->velocity.push_back(RPM_TO_MS * velocity[0]);
-  msg->velocity.push_back(RPM_TO_MS * velocity[1]);
-
-  // msg->effort.push_back(current[0]);
-  // msg->effort.push_back(current[1]);
-
-  last_diff_position[0] += (position[0] - last_position[0]);
-  last_diff_position[1] += (position[1] - last_position[1]);
-*/
 
     joint_state_pub_->publish(std::move(msg));
 }
@@ -228,19 +158,12 @@ void Odometry::update_pos_state(const std::shared_ptr<nurirobot_msgs::msg::Nurir
 {
     static std::array<uint16_t, 2> last_joint_positions = {0, 0};
 
-    diff_joint_positions_[0] = calculate_angle_difference(last_joint_positions[0], left_wheel_msg->pos) / 25.0;
-    diff_joint_positions_[1] = calculate_angle_difference(last_joint_positions[1], right_wheel_msg->pos) * -1 / 25.0;
+    diff_joint_positions_[0] = calculate_angle_difference(last_joint_positions[0], left_wheel_msg->pos);
+    diff_joint_positions_[1] = calculate_angle_difference(last_joint_positions[1], right_wheel_msg->pos) * -1;
 
     last_joint_positions[0] = left_wheel_msg->pos;
     last_joint_positions[1] = right_wheel_msg->pos;
 }
-
-// void Odometry::update_imu(const std::shared_ptr<sensor_msgs::msg::Imu const> &imu)
-// {
-//     imu_angle_ = atan2f(
-//         imu->orientation.x * imu->orientation.y + imu->orientation.w * imu->orientation.z,
-//         0.5f - imu->orientation.y * imu->orientation.y - imu->orientation.z * imu->orientation.z);
-// }
 
 bool Odometry::calculate_odometry(const rclcpp::Duration &duration)
 {
@@ -248,67 +171,6 @@ bool Odometry::calculate_odometry(const rclcpp::Duration &duration)
     double wheel_l = degreesToRadians(diff_joint_positions_[0]);
     double wheel_r = degreesToRadians(diff_joint_positions_[1]);
 
-    // double delta_s = 0.0;
-    // double delta_theta = 0.0;
-
-    // double theta = 0.0;
-    // static double last_theta = 0.0;
-    // double theta_pos = 0.0;
-
-    // // v = translational velocity [m/s]
-    // // w = rotational velocity [rad/s]
-    // double v = 0.0;
-    // double w = 0.0;
-
-    // double step_time = duration.seconds();
-
-    // if (step_time == 0.0)
-    // {
-    //     return false;
-    // }
-
-    // if (std::isnan(wheel_l))
-    // {
-    //     wheel_l = 0.0;
-    // }
-
-    // if (std::isnan(wheel_r))
-    // {
-    //     wheel_r = 0.0;
-    // }
-
-    // delta_s = wheels_radius_ * (wheel_r + wheel_l) / 2.0;
-
-    // // theta_pos = wheels_radius_ * (wheel_r - wheel_l) / wheels_separation_;
-    // // calc_yaw_.wheel_ang += theta_pos;
-    // // theta = calc_yaw_.calc_filter(
-    // //     imu_z_ * M_PI / 180.0f, step_time
-    // // );
-    // // delta_theta = theta - last_theta;
-
-    // // theta = imu_angle_;
-    // // delta_theta = theta - last_theta;
-
-    // theta = wheels_radius_ * (wheel_r - wheel_l) / wheels_separation_;
-    // delta_theta = theta;
-
-    // // compute odometric pose
-    // robot_pose_[0] += delta_s * cos(robot_pose_[2] + (delta_theta / 2.0));
-    // robot_pose_[1] += delta_s * sin(robot_pose_[2] + (delta_theta / 2.0));
-    // robot_pose_[2] += delta_theta;
-
-    // RCLCPP_DEBUG(nh_->get_logger(), "x : %f, y : %f", robot_pose_[0], robot_pose_[1]);
-
-    // // compute odometric instantaneouse velocity
-    // v = delta_s / step_time;
-    // w = delta_theta / step_time;
-
-    // robot_vel_[0] = v;
-    // robot_vel_[1] = 0.0;
-    // robot_vel_[2] = w;
-
-    // last_theta = theta;
-    // return true;
     double delta_s = 0.0;
     double delta_theta = 0.0;
 
@@ -336,9 +198,6 @@ bool Odometry::calculate_odometry(const rclcpp::Duration &duration)
     }
 
     delta_s = wheels_radius_ * (wheel_r + wheel_l) / 2.0;
-
-    // theta = imu_angle_;
-    // delta_theta = theta - last_theta;
     theta = wheels_radius_ * (wheel_r - wheel_l) / wheels_separation_;
     delta_theta = theta;    
 
@@ -347,7 +206,7 @@ bool Odometry::calculate_odometry(const rclcpp::Duration &duration)
     robot_pose_[1] += delta_s * sin(robot_pose_[2] + (delta_theta / 2.0));
     robot_pose_[2] += delta_theta;
 
-    RCLCPP_DEBUG(nh_->get_logger(), "x : %f, y : %f", robot_pose_[0], robot_pose_[1]);
+    RCLCPP_INFO(nh_->get_logger(), "x : %f, y : %f", robot_pose_[0], robot_pose_[1]);
 
     // compute odometric instantaneouse velocity
     v = delta_s / step_time;
