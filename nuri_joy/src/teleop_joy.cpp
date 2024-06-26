@@ -352,38 +352,38 @@ void TeleopJoy::Impl::cb_hc(const nurirobot_msgs::msg::HCControl::SharedPtr msg)
   {
   case 1:
     /* code */
-    max_fwd_vel = 1.0;
-    max_rev_m_s = 0.8;
-    max_deg_s = 1.0;
+    max_fwd_vel = 0.02;
+    max_rev_m_s = 0.016;
+    max_deg_s = 0.02;
     break;
   case 2:
     /* code */
-    max_fwd_vel = 1.4;
-    max_rev_m_s = 1.2;
-    max_deg_s = 1.2;
+    max_fwd_vel = 0.28;
+    max_rev_m_s = 0.24;
+    max_deg_s = 0.24;
     break;
   case 3:
     /* code */
-    max_fwd_vel = 2.0;
-    max_rev_m_s = 1.6;
-    max_deg_s = 1.5;
+    max_fwd_vel = 0.04;
+    max_rev_m_s = 0.032;
+    max_deg_s = 0.3;
     break;
   case 4:
     /* code */
-    max_fwd_vel = 2.5;
-    max_rev_m_s = 2.0;
-    max_deg_s = 1.5;
+    max_fwd_vel = 0.05;
+    max_rev_m_s = 0.04;
+    max_deg_s = 0.3;
     break;
   case 5:
     /* code */
-    max_fwd_vel = 3.0;
-    max_rev_m_s = 2.0;
-    max_deg_s = 1.5;
+    max_fwd_vel = 0.06;
+    max_rev_m_s = 0.04;
+    max_deg_s = 0.3;
     break;
   default:
-    max_fwd_vel = 1.0;
-    max_rev_m_s = 0.8;
-    max_deg_s = 1.0;
+    max_fwd_vel = 0.02;
+    max_rev_m_s = 0.016;
+    max_deg_s = 0.02;
     break;
   }
 }

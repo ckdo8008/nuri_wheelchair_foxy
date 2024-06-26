@@ -46,13 +46,13 @@ private:
         const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &right_wheel_msg);    
 
     void publish(const rclcpp::Time &now);
-    void update_joint_state(const rclcpp::Time &now);
+    // void update_joint_state(const rclcpp::Time &now);
 
     std::shared_ptr<rclcpp::Node> nh_;
     std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
-    rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_pub_;
+    // rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_pub_;
     // std::shared_ptr<message_filters::Subscriber<sensor_msgs::msg::JointState>> msg_ftr_joint_state_sub_;
 
     std::shared_ptr<message_filters::Subscriber<nurirobot_msgs::msg::NurirobotPos>> msg_ftr_left_wheel_sub_;

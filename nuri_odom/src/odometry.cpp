@@ -13,7 +13,7 @@ Odometry::Odometry(
     : nh_(nh),
       wheels_separation_(wheels_separation),
       wheels_radius_(wheels_radius),
-      publish_tf_(false),
+      publish_tf_(true),
       imu_angle_(0.0f),
       imu_z_(0.0f)
 {
@@ -41,11 +41,15 @@ Odometry::Odometry(
 
     auto qos = rclcpp::QoS(rclcpp::KeepLast(10));
     odom_pub_ = nh_->create_publisher<nav_msgs::msg::Odometry>("odom", qos);
-    joint_state_pub_ = nh_->create_publisher<sensor_msgs::msg::JointState>("joint_states", qos);
+    // joint_state_pub_ = nh_->create_publisher<sensor_msgs::msg::JointState>("joint_states", qos);
 
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(nh_);
 
     calc_yaw_ = ComplementaryFilter();
+
+    robot_pose_[0] = 0.0;
+    robot_pose_[1] = 0.0;
+    robot_pose_[2] = 0.0;  
 
     uint32_t queue_size = 10;
     joint_state_imu_sync_ = std::make_shared<SynchronizerJointStateImu>(queue_size);
@@ -64,11 +68,11 @@ Odometry::Odometry(
 
     joint_state_imu_sync_->setInterMessageLowerBound(
         0,
-        rclcpp::Duration(30ms));
+        rclcpp::Duration(10ms));
 
     joint_state_imu_sync_->setInterMessageLowerBound(
         1,
-        rclcpp::Duration(30ms));
+        rclcpp::Duration(10ms));
 
     joint_state_imu_sync_->registerCallback(
         std::bind(
@@ -82,16 +86,17 @@ void Odometry::joint_state_and_imu_callback(
     const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &left_wheel_msg,
     const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &right_wheel_msg)
 {
-    static rclcpp::Time last_time = left_wheel_msg->header.stamp;
-    rclcpp::Duration duration(left_wheel_msg->header.stamp.nanosec - last_time.nanoseconds());
+    static rclcpp::Time last_time = nh_->get_clock()->now();
+    rclcpp::Time current_time = nh_->get_clock()->now();
+    rclcpp::Duration duration(current_time.nanoseconds() - last_time.nanoseconds());
 
     update_pos_state(left_wheel_msg, right_wheel_msg);
     calculate_odometry(duration);
 
-    publish(left_wheel_msg->header.stamp);
-    update_joint_state(left_wheel_msg->header.stamp);
+    publish(current_time);
+    // update_joint_state(left_wheel_msg->header.stamp);
 
-    last_time = left_wheel_msg->header.stamp;
+    last_time = current_time;
 }
 
 void Odometry::publish(const rclcpp::Time &now)
@@ -136,27 +141,27 @@ void Odometry::publish(const rclcpp::Time &now)
     }
 }
 
-void Odometry::update_joint_state(const rclcpp::Time &now)
-{
-    auto msg = std::make_unique<sensor_msgs::msg::JointState>();
-    msg->header.frame_id = "base_link";
-    msg->header.stamp  = now;
-    msg->name.push_back("wheel_left_joint");
-    msg->name.push_back("wheel_right_joint");
+// void Odometry::update_joint_state(const rclcpp::Time &now)
+// {
+//     auto msg = std::make_unique<sensor_msgs::msg::JointState>();
+//     msg->header.frame_id = "base_link";
+//     msg->header.stamp  = now;
+//     msg->name.push_back("wheel_left_joint");
+//     msg->name.push_back("wheel_right_joint");
 
-    msg->position.push_back(TICK_TO_RAD * degreesToRadians(diff_joint_positions_[0]));
-    msg->position.push_back(TICK_TO_RAD * degreesToRadians(diff_joint_positions_[1]));
+//     msg->position.push_back(TICK_TO_RAD * degreesToRadians(diff_joint_positions_[0]));
+//     msg->position.push_back(TICK_TO_RAD * degreesToRadians(diff_joint_positions_[1]));
 
-    msg->velocity.push_back(RPM_TO_MS * robot_vel_l_);
-    msg->velocity.push_back(RPM_TO_MS * robot_vel_r_);
+//     msg->velocity.push_back(RPM_TO_MS * robot_vel_l_);
+//     msg->velocity.push_back(RPM_TO_MS * robot_vel_r_);
 
-    joint_state_pub_->publish(std::move(msg));
-}
+//     joint_state_pub_->publish(std::move(msg));
+// }
 
 void Odometry::update_pos_state(const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &left_wheel_msg,
                                 const std::shared_ptr<nurirobot_msgs::msg::NurirobotPos const> &right_wheel_msg)
 {
-    static std::array<uint16_t, 2> last_joint_positions = {0, 0};
+    static std::array<uint16_t, 2> last_joint_positions = {left_wheel_msg->pos, right_wheel_msg->pos};
 
     diff_joint_positions_[0] = calculate_angle_difference(last_joint_positions[0], left_wheel_msg->pos);
     diff_joint_positions_[1] = calculate_angle_difference(last_joint_positions[1], right_wheel_msg->pos) * -1;
@@ -175,15 +180,17 @@ bool Odometry::calculate_odometry(const rclcpp::Duration &duration)
     double delta_theta = 0.0;
 
     double theta = 0.0;
-    static double last_theta = 0.0;
+    // static double last_theta = 0.0;
 
-    double v = 0.0;
-    double w = 0.0;
+    // double v = 0.0;
+    // double w = 0.0;
+
 
     double step_time = duration.seconds();
 
     if (step_time == 0.0)
     {
+        // RCLCPP_INFO(nh_->get_logger(), "return ===================== false");
         return false;
     }
 
@@ -206,20 +213,20 @@ bool Odometry::calculate_odometry(const rclcpp::Duration &duration)
     robot_pose_[1] += delta_s * sin(robot_pose_[2] + (delta_theta / 2.0));
     robot_pose_[2] += delta_theta;
 
-    RCLCPP_INFO(nh_->get_logger(), "x : %f, y : %f", robot_pose_[0], robot_pose_[1]);
+    RCLCPP_INFO(nh_->get_logger(), "x : %f, y : %f, z : %f", robot_pose_[0], robot_pose_[1], robot_pose_[2]);
 
-    // compute odometric instantaneouse velocity
-    v = delta_s / step_time;
-    w = delta_theta / step_time;
+    // // compute odometric instantaneouse velocity
+    // v = delta_s / step_time;
+    // w = delta_theta / step_time;
 
-    robot_vel_l_ = wheels_radius_ * wheel_l / step_time;
-    robot_vel_r_ = wheels_radius_ * wheel_r / step_time;
+    // robot_vel_l_ = wheels_radius_ * wheel_l / step_time;
+    // robot_vel_r_ = wheels_radius_ * wheel_r / step_time;
 
-    robot_vel_[0] = v;
-    robot_vel_[1] = 0.0;
-    robot_vel_[2] = w;
+    // robot_vel_[0] = v;
+    // robot_vel_[1] = 0.0;
+    // robot_vel_[2] = w;
 
-    last_theta = theta;
+    // last_theta = theta;
     return true;
 }
 

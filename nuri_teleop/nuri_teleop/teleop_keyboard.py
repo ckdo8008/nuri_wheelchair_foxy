@@ -48,11 +48,11 @@ else:
     import termios
     import tty
 
-MAX_LIN_VEL = 1.0
-MAX_ANG_VEL = 0.8
+MAX_LIN_VEL = 0.35
+MAX_ANG_VEL = 0.35
 
-LIN_VEL_STEP_SIZE = 0.01
-ANG_VEL_STEP_SIZE = 0.01
+LIN_VEL_STEP_SIZE = 0.05
+ANG_VEL_STEP_SIZE = 0.05
 
 msg = """
 Control Your OMORobot R1 Mini!
