@@ -49,7 +49,11 @@ Odometry::Odometry(
 
     robot_pose_[0] = 0.0;
     robot_pose_[1] = 0.0;
-    robot_pose_[2] = 0.0;  
+    robot_pose_[2] = 0.0;
+
+    robot_vel_[0] = 0.0;
+    robot_vel_[1] = 0.0;
+    robot_vel_[2] = 0.0;
 
     uint32_t queue_size = 10;
     joint_state_imu_sync_ = std::make_shared<SynchronizerJointStateImu>(queue_size);
@@ -180,10 +184,10 @@ bool Odometry::calculate_odometry(const rclcpp::Duration &duration)
     double delta_theta = 0.0;
 
     double theta = 0.0;
-    // static double last_theta = 0.0;
+    static double last_theta = 0.0;
 
-    // double v = 0.0;
-    // double w = 0.0;
+    double v = 0.0;
+    double w = 0.0;
 
 
     double step_time = duration.seconds();
@@ -213,20 +217,20 @@ bool Odometry::calculate_odometry(const rclcpp::Duration &duration)
     robot_pose_[1] += delta_s * sin(robot_pose_[2] + (delta_theta / 2.0));
     robot_pose_[2] += delta_theta;
 
-    RCLCPP_INFO(nh_->get_logger(), "x : %f, y : %f, z : %f", robot_pose_[0], robot_pose_[1], robot_pose_[2]);
+    RCLCPP_DEBUG(nh_->get_logger(), "x : %f, y : %f, z : %f", robot_pose_[0], robot_pose_[1], robot_pose_[2]);
 
-    // // compute odometric instantaneouse velocity
-    // v = delta_s / step_time;
-    // w = delta_theta / step_time;
+    // compute odometric instantaneouse velocity
+    v = delta_s / step_time;
+    w = delta_theta / step_time;
 
-    // robot_vel_l_ = wheels_radius_ * wheel_l / step_time;
-    // robot_vel_r_ = wheels_radius_ * wheel_r / step_time;
+    robot_vel_l_ = wheels_radius_ * wheel_l / step_time;
+    robot_vel_r_ = wheels_radius_ * wheel_r / step_time;
 
-    // robot_vel_[0] = v;
-    // robot_vel_[1] = 0.0;
-    // robot_vel_[2] = w;
+    robot_vel_[0] = v;
+    robot_vel_[1] = 0.0;
+    robot_vel_[2] = w;
 
-    // last_theta = theta;
+    last_theta = theta;
     return true;
 }
 
