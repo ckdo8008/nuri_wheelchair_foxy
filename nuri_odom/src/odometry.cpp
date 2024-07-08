@@ -3,6 +3,9 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <rclcpp/rclcpp.hpp>
+#include <rcl_interfaces/msg/parameter_descriptor.hpp>
+
 
 using namespace std::chrono_literals;
 
@@ -19,10 +22,13 @@ Odometry::Odometry(
 {
     RCLCPP_INFO(nh_->get_logger(), "Init Odometry");
 
-    nh_->declare_parameter("odometry.frame_id");
-    nh_->declare_parameter("odometry.child_frame_id");
+    // nh_->declare_parameter("odometry.frame_id");
+    // nh_->declare_parameter("odometry.child_frame_id");
+    // nh_->declare_parameter("odometry.publish_tf");
+    nh_->declare_parameter<std::string>("odometry.frame_id", "odom", rcl_interfaces::msg::ParameterDescriptor(), false);
+    nh_->declare_parameter<std::string>("odometry.child_frame_id", "base_link", rcl_interfaces::msg::ParameterDescriptor(), false);
+    nh_->declare_parameter<bool>("odometry.publish_tf", true, rcl_interfaces::msg::ParameterDescriptor(), false);
 
-    nh_->declare_parameter("odometry.publish_tf");
 
     nh_->get_parameter_or<bool>(
         "odometry.publish_tf",
@@ -92,7 +98,8 @@ void Odometry::joint_state_and_imu_callback(
 {
     static rclcpp::Time last_time = nh_->get_clock()->now();
     rclcpp::Time current_time = nh_->get_clock()->now();
-    rclcpp::Duration duration(current_time.nanoseconds() - last_time.nanoseconds());
+    // rclcpp::Duration duration(current_time.nanoseconds() - last_time.nanoseconds());
+    auto duration = rclcpp::Duration(std::chrono::nanoseconds(current_time.nanoseconds() - last_time.nanoseconds()));
 
     update_pos_state(left_wheel_msg, right_wheel_msg);
     calculate_odometry(duration);

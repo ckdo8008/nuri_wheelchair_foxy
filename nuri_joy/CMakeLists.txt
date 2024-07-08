@@ -22,6 +22,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(nurirobot_msgs REQUIRED)
+find_package(teleop_twist_joy REQUIRED)
 
 include_directories(include)
 
@@ -38,6 +39,7 @@ ament_target_dependencies(${PROJECT_NAME}
   "rclcpp_components"
   "sensor_msgs"
   "nurirobot_msgs"
+  "teleop_twist_joy"
 )
 
 rclcpp_components_register_nodes(${PROJECT_NAME}
